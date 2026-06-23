@@ -14,12 +14,14 @@ erDiagram
     users ||--o{ blogs : "writes"
     users ||--o{ blog_comments : "writes"
     users ||--o{ activity_logs : "generates"
+    users ||--o{ wishlist_items : "wishlists"
     
     categories ||--o{ products : "categorizes"
     categories ||--o{ categories : "sub-categorizes"
     
     products ||--o{ cart_items : "contained in"
     products ||--o{ order_items : "ordered in"
+    products ||--o{ wishlist_items : "saved in"
     
     carts ||--o{ cart_items : "contains"
     
@@ -47,6 +49,8 @@ Represents customer, admin, and worker credentials.
 * **password_hash** (VARCHAR(255)): Securely hashed password.
 * **role** (ENUM('customer', 'admin', 'editor'), Default: 'customer'): Access control permissions.
 * **is_active** (BOOLEAN, Default: TRUE): Controls account access.
+* **reset_token** (VARCHAR(255), Nullable, Indexed): Secure hex token for password recovery.
+* **reset_token_expiry** (TIMESTAMP, Nullable): Expiry timestamp of the reset token (valid for 1 hour).
 * **created_at** (TIMESTAMP): Timestamp of account creation.
 * **updated_at** (TIMESTAMP): Timestamp of last account update.
 
@@ -94,7 +98,7 @@ Details catalog items and inventory levels.
 #### `resources`
 A single table managing all image and video uploads across the app.
 * **id** (INT, Primary Key, Auto Increment): Unique identifier.
-* **file_url** (VARCHAR(512)): S3/CDN address of the file.
+* **file_url** (VARCHAR(512)): CDN or path of the uploaded file.
 * **file_name** (VARCHAR(255)): Original file name.
 * **mime_type** (VARCHAR(100)): File type (e.g., `image/jpeg`, `image/png`, `video/mp4`).
 * **owner_type** (VARCHAR(50), Indexed): Entity table utilizing the resource (e.g., `'Product'`, `'Blog'`, `'User'`).
@@ -122,7 +126,19 @@ Lists individual products added to a cart.
 
 ---
 
-### 2.5 Orders & Razorpay Payments
+### 2.5 Wishlist Tables
+
+#### `wishlist_items`
+Stores saved items for customers to buy later.
+* **id** (INT, Primary Key, Auto Increment): Unique identifier.
+* **user_id** (INT, Foreign Key -> `users.id` ON DELETE CASCADE): Customer who saved the product.
+* **product_id** (INT, Foreign Key -> `products.id` ON DELETE CASCADE): Saved product.
+* **created_at** (TIMESTAMP): Saved timestamp.
+* *Note: Has a unique key `user_product` on (`user_id`, `product_id`) to prevent duplicate saves.*
+
+---
+
+### 2.6 Orders & Razorpay Payments
 
 #### `orders`
 A summary of checkouts. Integrated directly with Razorpay.
@@ -144,7 +160,7 @@ Details of specific items bought under an order.
 * **price_at_purchase** (DECIMAL(10, 2)): Captures the product's price at the moment of checkout.
 
 #### `payments`
-Tracks financial gateway transactions.
+Tracks gateway transactions.
 * **id** (INT, Primary Key, Auto Increment): Unique identifier.
 * **order_id** (INT, Foreign Key -> `orders.id` ON DELETE RESTRICT): Local order.
 * **razorpay_order_id** (VARCHAR(255), Indexed): Razorpay Order ID.
@@ -157,7 +173,7 @@ Tracks financial gateway transactions.
 
 ---
 
-### 2.6 Blogs & Promotions
+### 2.7 Blogs & Promotions
 
 #### `blogs`
 Marketing posts written by site admins or editors.
@@ -186,7 +202,7 @@ Discount codes.
 
 ---
 
-### 2.7 Administration & Audit
+### 2.8 Administration & Audit
 
 #### `activity_logs`
 Chronological database actions tracking system behaviors.
@@ -202,14 +218,16 @@ Chronological database actions tracking system behaviors.
 
 * **One-to-Many (`1:N`)**:
   * `users` -> `user_addresses`: A user can register multiple addresses. Deleting a user deletes their addresses (`ON DELETE CASCADE`).
+  * `users` -> `wishlist_items`: A user can save multiple products in their wishlist. Deleting a user clears their wishlist (`ON DELETE CASCADE`).
   * `categories` -> `products`: A category contains many products. Deleting a category sets the product category reference to null (`ON DELETE SET NULL`).
   * `orders` -> `order_items`: An order holds multiple line items. Deleting an order deletes its line items (`ON DELETE CASCADE`).
   * `blogs` -> `blog_comments`: An article contains multiple comments. Deleting an article clears its comments (`ON DELETE CASCADE`).
 * **Many-to-Many (`N:M`)**:
   * `products` <-> `orders` via `order_items`.
   * `products` <-> `carts` via `cart_items`.
+  * `products` <-> `users` via `wishlist_items`.
 * **Polymorphic (`1:N`) Resource Link**:
-  * `resources` links to `products`, `blogs`, and `users` using `owner_type` and `owner_id`. No standard foreign keys exist; verification must be enforced by the backend service level.
+  * `resources` links to `products`, `blogs`, and `users` using `owner_type` and `owner_id`. No standard foreign keys exist; verification is enforced by the backend service level.
 
 ---
 
