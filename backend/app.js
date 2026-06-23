@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
@@ -8,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve local upload files statically
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Health Check Route
 app.get('/health', (req, res) => {
@@ -21,6 +25,7 @@ const promoRoutes = require('./routes/promo');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const blogRoutes = require('./routes/blogs');
+const resourceRoutes = require('./routes/resources');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -28,6 +33,7 @@ app.use('/api/promo', promoRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/resources', resourceRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
