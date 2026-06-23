@@ -13,5 +13,6 @@ router.put('/products/:id', adminController.updateProduct);
 router.delete('/products/:id', adminController.deleteProduct);
 router.post('/categories', adminController.createCategory);
 router.get('/dashboard', dashboardController.getDashboardStats);
+router.put('/orders/:id/status', adminController.updateOrderStatus);
 
 module.exports = router;

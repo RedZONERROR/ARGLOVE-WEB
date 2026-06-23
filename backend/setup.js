@@ -55,9 +55,12 @@ async function setup() {
         \`password_hash\` VARCHAR(255) NOT NULL,
         \`role\` ENUM('customer', 'admin', 'editor') DEFAULT 'customer',
         \`is_active\` BOOLEAN DEFAULT TRUE,
+        \`reset_token\` VARCHAR(255) DEFAULT NULL,
+        \`reset_token_expiry\` TIMESTAMP NULL DEFAULT NULL,
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX (\`email\`)
+        INDEX (\`email\`),
+        INDEX (\`reset_token\`)
       ) ENGINE=InnoDB;
     `);
 
