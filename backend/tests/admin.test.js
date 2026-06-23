@@ -150,7 +150,81 @@ describe('Admin CRUD API Endpoints', () => {
     expect(res.body).toHaveProperty('message', 'Category created successfully.');
     expect(res.body.category).toHaveProperty('name', 'Test Category');
 
-    // Clean up created test category
-    await db.query('DELETE FROM categories WHERE id = ?', [res.body.category.id]);
+    const createdCategoryId = res.body.category.id;
+
+    // Test: PUT /api/admin/categories/:id - Update Category
+    const updateRes = await request(app)
+      .put(`/api/admin/categories/${createdCategoryId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: 'Test Category Updated',
+        slug: uniqueSlug + '-updated'
+      });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.category).toHaveProperty('name', 'Test Category Updated');
+
+    // Test: DELETE /api/admin/categories/:id - Delete Category
+    const deleteRes = await request(app)
+      .delete(`/api/admin/categories/${createdCategoryId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body).toHaveProperty('message', 'Category deleted successfully.');
+  });
+
+  test('GET /api/admin/orders & GET /api/admin/orders/:id - Should successfully list and fetch orders', async () => {
+    // 1. Get all orders
+    const res = await request(app)
+      .get('/api/admin/orders')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('orders');
+    expect(Array.isArray(res.body.orders)).toBe(true);
+
+    // If an order exists, test fetching it individually
+    if (res.body.orders.length > 0) {
+      const orderId = res.body.orders[0].id;
+      const singleRes = await request(app)
+        .get(`/api/admin/orders/${orderId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(singleRes.status).toBe(200);
+      expect(singleRes.body).toHaveProperty('order');
+      expect(singleRes.body).toHaveProperty('items');
+      expect(singleRes.body).toHaveProperty('payments');
+    }
+  });
+
+  test('GET /api/admin/users & PUT /api/admin/users/:id/status - Should successfully manage users', async () => {
+    // 1. Get all users
+    const res = await request(app)
+      .get('/api/admin/users')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('users');
+    expect(Array.isArray(res.body.users)).toBe(true);
+
+    // Find our created regular user to test toggling status
+    const testUser = res.body.users.find(u => u.email === regularUser.email);
+    expect(testUser).toBeDefined();
+
+    // Deactivate user
+    const toggleRes = await request(app)
+      .put(`/api/admin/users/${testUser.id}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ is_active: false });
+
+    expect(toggleRes.status).toBe(200);
+    expect(toggleRes.body).toHaveProperty('is_active', false);
+
+    // Reactivate user to keep DB state clean
+    const reactivateRes = await request(app)
+      .put(`/api/admin/users/${testUser.id}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ is_active: true });
+
+    expect(reactivateRes.status).toBe(200);
+    expect(reactivateRes.body).toHaveProperty('is_active', true);
   });
 });

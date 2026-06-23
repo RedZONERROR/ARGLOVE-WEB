@@ -12,7 +12,13 @@ router.post('/products', adminController.createProduct);
 router.put('/products/:id', adminController.updateProduct);
 router.delete('/products/:id', adminController.deleteProduct);
 router.post('/categories', adminController.createCategory);
+router.put('/categories/:id', adminController.updateCategory);
+router.delete('/categories/:id', adminController.deleteCategory);
 router.get('/dashboard', dashboardController.getDashboardStats);
 router.put('/orders/:id/status', adminController.updateOrderStatus);
+router.get('/orders', adminController.getOrders);
+router.get('/orders/:id', adminController.getOrderById);
+router.get('/users', adminController.getUsers);
+router.put('/users/:id/status', adminController.toggleUserStatus);
 
 module.exports = router;
