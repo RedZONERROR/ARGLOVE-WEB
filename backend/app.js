@@ -7,7 +7,11 @@ const app = express();
 
 // Standard Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Serve local upload files statically
@@ -26,6 +30,8 @@ const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 const blogRoutes = require('./routes/blogs');
 const resourceRoutes = require('./routes/resources');
+const webhookRoutes = require('./routes/webhooks');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -34,6 +40,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/resources', resourceRoutes);
+app.use('/api/payments', webhookRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
