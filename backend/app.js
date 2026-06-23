@@ -32,6 +32,8 @@ const blogRoutes = require('./routes/blogs');
 const resourceRoutes = require('./routes/resources');
 const webhookRoutes = require('./routes/webhooks');
 const adminRoutes = require('./routes/admin');
+const addressRoutes = require('./routes/addresses');
+const wishlistRoutes = require('./routes/wishlist');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -42,6 +44,8 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/payments', webhookRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

@@ -35,7 +35,7 @@ async function setup() {
 
     // Drop tables if they exist to start fresh (Optional, but highly helpful for setup scripts)
     const tablesToDrop = [
-      'activity_logs', 'blog_comments', 'blogs', 'payments', 'order_items', 
+      'wishlist_items', 'activity_logs', 'blog_comments', 'blogs', 'payments', 'order_items', 
       'orders', 'promo_codes', 'cart_items', 'carts', 'resources', 
       'products', 'categories', 'user_addresses', 'users'
     ];
@@ -254,6 +254,20 @@ async function setup() {
         \`ip_address\` VARCHAR(45) NOT NULL,
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE SET NULL
+      ) ENGINE=InnoDB;
+    `);
+
+    // Wishlist Items
+    console.log('Creating "wishlist_items" table...');
+    await connection.query(`
+      CREATE TABLE \`wishlist_items\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`product_id\` INT NOT NULL,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE,
+        FOREIGN KEY (\`product_id\`) REFERENCES \`products\`(\`id\`) ON DELETE CASCADE,
+        UNIQUE KEY \`user_product\` (\`user_id\`, \`product_id\`)
       ) ENGINE=InnoDB;
     `);
 
