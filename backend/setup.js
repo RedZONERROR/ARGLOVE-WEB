@@ -311,29 +311,35 @@ async function setup() {
     console.log('-> Seeded default customer shipping address.');
 
     // Seed Categories
-    const [catFootwear] = await connection.query("INSERT INTO \`categories\` (\`name\`, \`slug\`) VALUES ('Footwear', 'footwear');");
-    const [catApparel] = await connection.query("INSERT INTO \`categories\` (\`name\`, \`slug\`) VALUES ('Apparel', 'apparel');");
-    console.log('-> Seeded categories (Footwear, Apparel).');
+    const [catSkincare] = await connection.query("INSERT INTO \`categories\` (\`name\`, \`slug\`) VALUES ('Skincare', 'skincare');");
+    const [catBundles] = await connection.query("INSERT INTO \`categories\` (\`name\`, \`slug\`) VALUES ('Bundles', 'bundles');");
+    console.log('-> Seeded categories (Skincare, Bundles).');
 
     // Seed Products
     const [prod1] = await connection.query(`
       INSERT INTO \`products\` (\`category_id\`, \`name\`, \`description\`, \`regular_price\`, \`discount_price\`, \`stock_quantity\`) 
-      VALUES (?, 'Ultralight Running Shoes', 'Ultra lightweight mesh sports running shoes for athletics.', 5999.00, 4999.00, 100);
-    `, [catFootwear.insertId]);
+      VALUES (?, 'ARGLOVE Exosome Serum (1 Bottle)', 'Powered by Exosome Technology and 5% Ethylated Vitamin C.', 1999.00, 1699.00, 100);
+    `, [catSkincare.insertId]);
 
     const [prod2] = await connection.query(`
       INSERT INTO \`products\` (\`category_id\`, \`name\`, \`description\`, \`regular_price\`, \`discount_price\`, \`stock_quantity\`) 
-      VALUES (?, 'Classic Cotton Hoodie', 'Warm and comfortable 100% premium cotton hoodie.', 2999.00, null, 50);
-    `, [catApparel.insertId]);
-    console.log('-> Seeded products (Shoes, Hoodie).');
+      VALUES (?, 'ARGLOVE Exosome Serum (2 Bottles Bundle)', 'Double renewal pack with FREE Bio-Collagen Deep Mask.', 3998.00, 1999.00, 50);
+    `, [catBundles.insertId]);
+
+    const [prod3] = await connection.query(`
+      INSERT INTO \`products\` (\`category_id\`, \`name\`, \`description\`, \`regular_price\`, \`discount_price\`, \`stock_quantity\`) 
+      VALUES (?, 'ARGLOVE Exosome Serum (3 Bottles Bundle)', 'Complete skin transformation pack with FREE Bio-Collagen Deep Mask.', 5997.00, 2999.00, 30);
+    `, [catBundles.insertId]);
+    console.log('-> Seeded products (Exosome Serum variations).');
 
     // Seed Resources (Images)
     await connection.query(`
       INSERT INTO \`resources\` (\`file_url\`, \`file_name\`, \`mime_type\`, \`owner_type\`, \`owner_id\`, \`file_role\`) 
       VALUES 
-      ('https://images.unsplash.com/photo-1542291026-7eec264c27ff', 'shoe-red.jpg', 'image/jpeg', 'Product', ?, 'thumbnail'),
-      ('https://images.unsplash.com/photo-1556911220-e15b29be8c8f', 'hoodie-cotton.jpg', 'image/jpeg', 'Product', ?, 'thumbnail');
-    `, [prod1.insertId, prod2.insertId]);
+      ('https://images.unsplash.com/photo-1576426863848-c21f53c60b19', 'serum-1.jpg', 'image/jpeg', 'Product', ?, 'thumbnail'),
+      ('https://images.unsplash.com/photo-1576426863848-c21f53c60b19', 'serum-2.jpg', 'image/jpeg', 'Product', ?, 'thumbnail'),
+      ('https://images.unsplash.com/photo-1576426863848-c21f53c60b19', 'serum-3.jpg', 'image/jpeg', 'Product', ?, 'thumbnail');
+    `, [prod1.insertId, prod2.insertId, prod3.insertId]);
     console.log('-> Seeded product media resources.');
 
     // Seed Promo Code

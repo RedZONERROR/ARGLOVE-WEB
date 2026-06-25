@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Search, ShoppingBag, User, Star, ChevronRight, Check, Play, X, Plus, Minus, ArrowRight, Trash2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import { api, Product, UserAddress } from "./services/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,22 @@ interface CartItem {
   price: number;
   originalPrice: number;
   freeGift: boolean;
+  dbId?: number;
+}
+
+interface Plan {
+  id: string;
+  label: string;
+  qty: string;
+  bottles: number;
+  price: number;
+  originalPrice: number;
+  tag: string | null;
+  saving: string;
+  extras: string[];
+  freeGift: boolean;
+  highlighted: boolean;
+  dbId?: number;
 }
 
 interface AppState {
@@ -223,7 +240,7 @@ function Header({
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function HeroSection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0]) => void }) {
+function HeroSection({ onAddToCart }: { onAddToCart: (plan: Plan) => void }) {
   return (
     <section
       className="relative w-full overflow-hidden"
@@ -348,7 +365,7 @@ function HeroSection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0]) => 
 
 // ─── Bestseller ───────────────────────────────────────────────────────────────
 
-function BestsellerSection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0]) => void }) {
+function BestsellerSection({ onAddToCart, plans }: { onAddToCart: (plan: Plan) => void; plans: Plan[] }) {
   return (
     <section id="bestseller" className="py-24 px-8" style={{ background: "#FFF9E6" }}>
       <div className="max-w-5xl mx-auto">
@@ -362,7 +379,7 @@ function BestsellerSection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0
         </div>
 
         <div className="grid grid-cols-3 gap-6">
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <div
               key={plan.id}
               className="relative flex flex-col rounded-3xl overflow-hidden transition-transform duration-200 hover:-translate-y-1"
@@ -605,9 +622,7 @@ function AboutSection() {
   );
 }
 
-// ─── Final CTA ────────────────────────────────────────────────────────────────
-
-function FinalCTASection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0]) => void }) {
+function FinalCTASection({ onAddToCart, plan }: { onAddToCart: (plan: Plan) => void; plan: Plan }) {
   return (
     <section className="relative overflow-hidden py-28 px-8 text-center" style={{ background: "#FFFFFF" }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 80% at 50% 50%, rgba(255,204,0,0.10) 0%, transparent 70%)" }} />
@@ -636,7 +651,7 @@ function FinalCTASection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0])
           </div>
         </div>
         <button
-          onClick={() => onAddToCart(PLANS[0])}
+          onClick={() => plan && onAddToCart(plan)}
           className="font-bold tracking-[0.14em] uppercase transition-all duration-200 hover:shadow-2xl active:scale-[0.98]"
           style={{ background: "#FFCC00", color: "#1A1A1A", width: 320, height: 64, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, letterSpacing: "0.14em", border: "none", cursor: "pointer", boxShadow: "0 8px 40px rgba(255,204,0,0.45)" }}
         >
@@ -654,6 +669,185 @@ function FinalCTASection({ onAddToCart }: { onAddToCart: (plan: typeof PLANS[0])
     </section>
   );
 }
+// ─── Profile Panel ────────────────────────────────────────────────────────────
+
+function ProfilePanel({
+  user,
+  addresses,
+  orders,
+  onLogout,
+  onAddAddress,
+  onDeleteAddress
+}: {
+  user: any;
+  addresses: UserAddress[];
+  orders: any[];
+  onLogout: () => void;
+  onAddAddress: (addr: UserAddress) => Promise<void>;
+  onDeleteAddress: (id: number) => Promise<void>;
+}) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [recipientName, setRecipientName] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recipientName || !streetAddress || !city || !stateName || !postalCode || !phoneNumber) {
+      toast.error("Please fill in all address details.");
+      return;
+    }
+    try {
+      await onAddAddress({
+        address_type: 'shipping',
+        recipient_name: recipientName,
+        street_address: streetAddress,
+        city,
+        state: stateName,
+        postal_code: postalCode,
+        phone_number: phoneNumber
+      });
+      setShowAddForm(false);
+      setRecipientName(""); setStreetAddress(""); setCity(""); setStateName(""); setPostalCode(""); setPhoneNumber("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add address.");
+    }
+  };
+
+  return (
+    <div className="px-8 pb-8 flex flex-col gap-6 max-h-[70vh] overflow-y-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] text-gray-400 font-semibold tracking-wider">LOGGED IN AS</p>
+          <p className="text-sm font-bold text-gray-800 truncate max-w-[200px]">{user.email}</p>
+        </div>
+        <button
+          onClick={onLogout}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition cursor-pointer"
+        >
+          Sign Out
+        </button>
+      </div>
+
+      <div className="border-t pt-4" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-700">Saved Addresses</p>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="text-xs font-semibold text-amber-600 hover:underline cursor-pointer"
+          >
+            {showAddForm ? "Cancel" : "+ Add New"}
+          </button>
+        </div>
+
+        {showAddForm && (
+          <form onSubmit={handleAddSubmit} className="flex flex-col gap-3 p-4 rounded-2xl mb-4 bg-amber-50/50 border border-amber-200">
+            <input
+              placeholder="Recipient Name"
+              value={recipientName}
+              onChange={e => setRecipientName(e.target.value)}
+              className="p-2.5 rounded-lg text-xs outline-none bg-white border border-amber-200"
+            />
+            <input
+              placeholder="Street Address"
+              value={streetAddress}
+              onChange={e => setStreetAddress(e.target.value)}
+              className="p-2.5 rounded-lg text-xs outline-none bg-white border border-amber-200"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                placeholder="City"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                className="p-2.5 rounded-lg text-xs outline-none bg-white border border-amber-200"
+              />
+              <input
+                placeholder="State"
+                value={stateName}
+                onChange={e => setStateName(e.target.value)}
+                className="p-2.5 rounded-lg text-xs outline-none bg-white border border-amber-200"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                placeholder="Postal Code"
+                value={postalCode}
+                onChange={e => setPostalCode(e.target.value)}
+                className="p-2.5 rounded-lg text-xs outline-none bg-white border border-amber-200"
+              />
+              <input
+                placeholder="Phone Number"
+                value={phoneNumber}
+                onChange={e => setPhoneNumber(e.target.value)}
+                className="p-2.5 rounded-lg text-xs outline-none bg-white border border-amber-200"
+              />
+            </div>
+            <button type="submit" className="w-full py-2.5 rounded-lg text-xs font-bold bg-[#FFCC00] hover:opacity-90 transition text-[#1A1A1A] cursor-pointer border-none">
+              Save Address
+            </button>
+          </form>
+        )}
+
+        {addresses.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">No saved addresses found.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {addresses.map(addr => (
+              <div key={addr.id} className="p-3 rounded-xl border flex items-center justify-between text-xs bg-[#FFF9E6]" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
+                <div>
+                  <p className="font-bold">{addr.recipient_name}</p>
+                  <p className="text-gray-500">{addr.street_address}, {addr.city}, {addr.state} - {addr.postal_code}</p>
+                  <p className="text-gray-400">{addr.phone_number}</p>
+                </div>
+                {addr.id && (
+                  <button onClick={() => onDeleteAddress(addr.id!)} className="p-1 text-gray-300 hover:text-red-500 transition cursor-pointer border-none bg-transparent">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t pt-4" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">Order History</p>
+        {orders.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">No previous orders found.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {orders.map(order => (
+              <div key={order.id} className="p-3 rounded-xl border text-xs bg-[#FFF9E6]" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
+                <div className="flex justify-between font-bold mb-1">
+                  <span>Order #{order.id}</span>
+                  <span className="capitalize text-amber-600 font-semibold">{order.status}</span>
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">
+                  {new Date(order.created_at).toLocaleDateString()}
+                </div>
+                <div className="border-t pt-1.5 flex flex-col gap-1" style={{ borderColor: "rgba(212,175,55,0.1)" }}>
+                  {order.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-gray-600">
+                      <span>{item.name} x {item.quantity}</span>
+                      <span>₹{parseFloat(item.price_at_purchase).toLocaleString("en-IN")}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t mt-2 pt-1.5 flex justify-between font-bold" style={{ borderColor: "rgba(212,175,55,0.1)" }}>
+                  <span>Total Amount</span>
+                  <span>₹{parseFloat(order.total_amount).toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Cart Drawer ──────────────────────────────────────────────────────────────
 
@@ -663,12 +857,24 @@ function CartDrawer({
   onClose,
   onQtyChange,
   onRemove,
+  user,
+  addresses,
+  selectedAddressId,
+  onSelectAddress,
+  onCheckout,
+  onOpenAccount
 }: {
   open: boolean;
   cart: CartItem[];
   onClose: () => void;
   onQtyChange: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
+  user: any;
+  addresses: UserAddress[];
+  selectedAddressId: number | null;
+  onSelectAddress: (id: number) => void;
+  onCheckout: () => void;
+  onOpenAccount: () => void;
 }) {
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -699,7 +905,7 @@ function CartDrawer({
             <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 20, color: "#1A1A1A" }}>Your Cart</p>
             <p className="text-xs mt-0.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#999" }}>{totalItems} {totalItems === 1 ? "item" : "items"}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: "#1A1A1A" }} aria-label="Close cart">
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors border-none bg-transparent cursor-pointer" style={{ color: "#1A1A1A" }} aria-label="Close cart">
             <X size={20} strokeWidth={1.5} />
           </button>
         </div>
@@ -756,7 +962,7 @@ function CartDrawer({
                       </div>
                       <div className="flex items-center gap-3">
                         <p className="font-bold text-sm" style={{ fontFamily: "'Fraunces', serif", color: "#1A1A1A" }}>₹{(item.price * item.qty).toLocaleString("en-IN")}</p>
-                        <button onClick={() => onRemove(item.id)} className="p-1 rounded-full hover:bg-red-50 transition-colors" style={{ color: "#ccc", border: "none", cursor: "pointer", background: "transparent" }} aria-label="Remove item">
+                        <button onClick={() => onRemove(item.id)} className="p-1 rounded-full hover:bg-red-50 transition-colors border-none bg-transparent cursor-pointer" style={{ color: "#ccc" }} aria-label="Remove item">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -772,6 +978,35 @@ function CartDrawer({
                   Free shipping + FREE Bio-Collagen Deep Mask included with every order.
                 </p>
               </div>
+
+              {/* Address selector section */}
+              {user && (
+                <div className="border-t pt-4 mt-2" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">Shipping Address</p>
+                  {addresses.length === 0 ? (
+                    <div className="text-xs text-gray-500">
+                      No shipping address saved.{" "}
+                      <button onClick={onOpenAccount} className="text-amber-600 font-semibold hover:underline bg-transparent border-none cursor-pointer">
+                        Add one in your account settings
+                      </button>{" "}
+                      to checkout.
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedAddressId || ""}
+                      onChange={e => onSelectAddress(Number(e.target.value))}
+                      className="w-full p-2.5 rounded-xl text-xs outline-none bg-amber-50/50 border border-amber-200"
+                    >
+                      <option value="" disabled>-- Select Shipping Address --</option>
+                      {addresses.map(addr => (
+                        <option key={addr.id} value={addr.id}>
+                          {addr.recipient_name} - {addr.street_address}, {addr.city}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -783,14 +1018,28 @@ function CartDrawer({
               <span className="text-sm font-semibold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>Subtotal</span>
               <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 24, color: "#1A1A1A" }}>₹{total.toLocaleString("en-IN")}</span>
             </div>
-            <button
-              onClick={() => toast.success("Order placed! We'll confirm via WhatsApp shortly.", { duration: 4000 })}
-              className="w-full py-4 rounded-xl font-bold tracking-[0.1em] uppercase text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
-              style={{ background: "#FFCC00", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif", border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(255,204,0,0.4)" }}
-            >
-              Proceed to Checkout
-              <ArrowRight size={16} strokeWidth={2} />
-            </button>
+
+            {user ? (
+              <button
+                onClick={onCheckout}
+                disabled={!selectedAddressId}
+                className={`w-full py-4 rounded-xl font-bold tracking-[0.1em] uppercase text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] border-none ${!selectedAddressId ? 'opacity-50 cursor-not-allowed bg-gray-200 text-gray-400' : 'hover:opacity-90 bg-[#FFCC00] text-[#1A1A1A]'}`}
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: selectedAddressId ? "pointer" : "not-allowed", boxShadow: selectedAddressId ? "0 4px 20px rgba(255,204,0,0.4)" : "none" }}
+              >
+                Proceed to Checkout
+                <ArrowRight size={16} strokeWidth={2} />
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAccount}
+                className="w-full py-4 rounded-xl font-bold tracking-[0.1em] uppercase text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 active:scale-[0.98] border-none"
+                style={{ background: "#FFCC00", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: "pointer", boxShadow: "0 4px 20px rgba(255,204,0,0.4)" }}
+              >
+                Sign In to Checkout
+                <ArrowRight size={16} strokeWidth={2} />
+              </button>
+            )}
+
             <p className="text-center text-[10px] mt-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#aaa" }}>
               Cash on Delivery available &middot; Free shipping across India
             </p>
@@ -850,7 +1099,7 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               onKeyDown={(e) => { if (e.key === "Enter" && query) toast.info(`Searching for "${query}"...`); }}
             />
             {query && (
-              <button onClick={() => setQuery("")} className="p-1 hover:bg-black/5 rounded-full transition-colors" style={{ color: "#aaa", border: "none", cursor: "pointer", background: "transparent" }}>
+              <button onClick={() => setQuery("")} className="p-1 hover:bg-black/5 rounded-full transition-colors border-none bg-transparent cursor-pointer" style={{ color: "#aaa" }}>
                 <X size={14} />
               </button>
             )}
@@ -862,8 +1111,8 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                 <button
                   key={s}
                   onClick={() => { setQuery(s); toast.info(`Searching for "${s}"...`); onClose(); }}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors hover:bg-[#FFCC00] hover:text-[#1A1A1A]"
-                  style={{ background: "#FFF9E6", color: "#555", fontFamily: "'Plus Jakarta Sans', sans-serif", border: "1px solid rgba(212,175,55,0.2)", cursor: "pointer" }}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors hover:bg-[#FFCC00] hover:text-[#1A1A1A] border border-amber-200 cursor-pointer"
+                  style={{ background: "#FFF9E6", color: "#555", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                 >
                   {s}
                 </button>
@@ -878,10 +1127,33 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
 // ─── Account Modal ────────────────────────────────────────────────────────────
 
-function AccountModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function AccountModal({
+  open,
+  onClose,
+  user,
+  addresses,
+  orders,
+  onLogin,
+  onRegister,
+  onLogout,
+  onAddAddress,
+  onDeleteAddress
+}: {
+  open: boolean;
+  onClose: () => void;
+  user: any;
+  addresses: UserAddress[];
+  orders: any[];
+  onLogin: (email: string, pass: string) => Promise<void>;
+  onRegister: (email: string, pass: string) => Promise<void>;
+  onLogout: () => void;
+  onAddAddress: (addr: UserAddress) => Promise<void>;
+  onDeleteAddress: (id: number) => Promise<void>;
+}) {
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -895,16 +1167,30 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) { toast.error("Please fill in all fields."); return; }
-    toast.success(tab === "login" ? "Welcome back!" : "Account created! Welcome to ARGLOVE.");
-    onClose();
-    setEmail(""); setPassword("");
+    setLoading(true);
+    try {
+      if (tab === "login") {
+        await onLogin(email, password);
+        toast.success("Welcome back!");
+      } else {
+        await onRegister(email, password);
+        toast.success("Account created successfully!");
+      }
+      onClose();
+      setEmail(""); setPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Authentication failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
+      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[60] transition-opacity duration-200"
         style={{ background: "rgba(26,26,26,0.5)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", backdropFilter: "blur(4px)" }}
@@ -912,68 +1198,99 @@ function AccountModal({ open, onClose }: { open: boolean; onClose: () => void })
       />
       <div
         className="fixed left-1/2 top-1/2 z-[70] transition-all duration-300"
-        style={{ transform: `translate(-50%, ${open ? "-50%" : "-44%"})`, width: "min(440px, 92vw)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none" }}
+        style={{ transform: `translate(-50%, ${open ? "-50%" : "-44%"})`, width: "min(460px, 92vw)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none" }}
       >
         <div className="rounded-3xl overflow-hidden" style={{ background: "#FFFFFF", boxShadow: "0 32px 100px rgba(0,0,0,0.18)" }}>
           {/* Header */}
           <div className="flex items-center justify-between px-8 pt-8 pb-4">
             <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 22, color: "#1A1A1A" }}>ARGLOVE</span>
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ border: "none", cursor: "pointer", background: "transparent", color: "#1A1A1A" }} aria-label="Close">
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 transition-colors border-none bg-transparent cursor-pointer" style={{ color: "#1A1A1A" }} aria-label="Close">
               <X size={18} strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex mx-8 mb-6 rounded-xl overflow-hidden" style={{ background: "#FFF9E6" }}>
-            {(["login", "signup"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className="flex-1 py-2.5 text-sm font-semibold transition-all duration-200"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: tab === t ? "#FFCC00" : "transparent", color: "#1A1A1A", border: "none", cursor: "pointer", borderRadius: tab === t ? 10 : 0 }}
-              >
-                {t === "login" ? "Sign In" : "Create Account"}
-              </button>
-            ))}
-          </div>
+          {user ? (
+            <ProfilePanel
+              user={user}
+              addresses={addresses}
+              orders={orders}
+              onLogout={onLogout}
+              onAddAddress={onAddAddress}
+              onDeleteAddress={onDeleteAddress}
+            />
+          ) : (
+            <>
+              {/* Tabs */}
+              <div className="flex mx-8 mb-6 rounded-xl overflow-hidden" style={{ background: "#FFF9E6" }}>
+                {(["login", "signup"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className="flex-1 py-2.5 text-sm font-semibold transition-all duration-200"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: tab === t ? "#FFCC00" : "transparent", color: "#1A1A1A", border: "none", cursor: "pointer", borderRadius: tab === t ? 10 : 0 }}
+                  >
+                    {t === "login" ? "Sign In" : "Create Account"}
+                  </button>
+                ))}
+              </div>
 
-          <form onSubmit={handleSubmit} className="px-8 pb-8 flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.25)", color: "#1A1A1A" }}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.25)", color: "#1A1A1A" }}
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-3.5 rounded-xl font-bold text-sm tracking-[0.1em] uppercase transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
-              style={{ background: "#FFCC00", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif", border: "none", cursor: "pointer", boxShadow: "0 4px 16px rgba(255,204,0,0.35)" }}
-            >
-              {tab === "login" ? "Sign In" : "Create Account"}
-            </button>
-            {tab === "login" && (
-              <p className="text-center text-xs" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#aaa" }}>
-                Forgot your password?{" "}
-                <button type="button" onClick={() => toast.info("Password reset link sent to your email.")} className="underline" style={{ color: "#D4AF37", background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "inherit" }}>Reset it</button>
-              </p>
-            )}
-          </form>
+              <form onSubmit={handleSubmit} className="px-8 pb-8 flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.25)", color: "#1A1A1A" }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.25)", color: "#1A1A1A" }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-xl font-bold text-sm tracking-[0.1em] uppercase transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 border-none"
+                  style={{ background: "#FFCC00", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: loading ? "not-allowed" : "pointer", boxShadow: "0 4px 16px rgba(255,204,0,0.35)" }}
+                >
+                  {loading ? "Processing..." : (tab === "login" ? "Sign In" : "Create Account")}
+                </button>
+                {tab === "login" && (
+                  <p className="text-center text-xs" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#aaa" }}>
+                    Forgot your password?{" "}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!email) { toast.error("Please enter your email above first."); return; }
+                        try {
+                          await api.forgotPassword(email);
+                          toast.success("Password reset instructions sent.");
+                        } catch (err: any) {
+                          toast.error(err.message || "Failed to trigger password reset.");
+                        }
+                      }}
+                      className="underline bg-transparent border-none cursor-pointer"
+                      style={{ color: "#D4AF37", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "inherit" }}
+                    >
+                      Reset it
+                    </button>
+                  </p>
+                )}
+              </form>
+            </>
+          )}
         </div>
       </div>
     </>
@@ -1009,8 +1326,8 @@ function VideoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         <div className="relative rounded-3xl overflow-hidden" style={{ background: "#000", boxShadow: "0 40px 120px rgba(0,0,0,0.6)" }}>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/20"
-            style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", color: "#FFFFFF" }}
+            className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/20 border-none bg-transparent cursor-pointer"
+            style={{ color: "#FFFFFF" }}
             aria-label="Close video"
           >
             <X size={18} strokeWidth={1.5} />
@@ -1068,36 +1385,285 @@ export default function App() {
     videoOpen: false,
   });
 
+  const [dbProducts, setDbProducts] = useState<Product[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+
+  // Refresh profile details, addresses, and order history
+  const refreshUserData = async () => {
+    try {
+      const data = await api.getProfile();
+      setUser(data.user);
+      setAddresses(data.addresses);
+      if (data.addresses.length > 0) {
+        setSelectedAddressId(data.addresses[0].id || null);
+      }
+      const history = await api.getOrderHistory();
+      setOrders(history);
+    } catch (err) {
+      console.error("Failed to load user profile data:", err);
+    }
+  };
+
+  const syncCartFromDb = async () => {
+    try {
+      const data = await api.getCart();
+      const newCart = data.items.map(item => {
+        let planId = 'single';
+        let bottles = 1;
+        let freeGift = false;
+
+        if (item.name.includes('2 Bottles')) {
+          planId = 'double';
+          bottles = 2;
+          freeGift = true;
+        } else if (item.name.includes('3 Bottles')) {
+          planId = 'triple';
+          bottles = 3;
+          freeGift = true;
+        }
+
+        return {
+          id: planId,
+          name: item.name.includes('Bundle') ? (bottles === 2 ? '2 Bottles' : '3 Bottles') : '1 Bottle',
+          qty: item.quantity,
+          bottles,
+          price: parseFloat(item.discount_price || item.regular_price),
+          originalPrice: parseFloat(item.regular_price),
+          freeGift,
+          dbId: item.product_id
+        };
+      });
+
+      setState(s => ({ ...s, cart: newCart }));
+    } catch (err) {
+      console.error("Failed to load cart from database:", err);
+    }
+  };
+
+  const syncLocalCartToDb = async (localCart: CartItem[]) => {
+    try {
+      for (const item of localCart) {
+        if (item.dbId) {
+          await api.addToCart(item.dbId, item.qty);
+        }
+      }
+      await syncCartFromDb();
+    } catch (err) {
+      console.error("Error syncing local cart to database:", err);
+    }
+  };
+
+  // Load products on start and check login
+  useEffect(() => {
+    api.getProducts().then(setDbProducts).catch(err => console.error("Error loading products:", err));
+
+    const token = localStorage.getItem('arglove_token');
+    if (token) {
+      refreshUserData();
+      syncCartFromDb();
+    }
+  }, []);
+
   const setOpen = (key: keyof Omit<AppState, "cart">, value: boolean) =>
     setState((s) => ({ ...s, [key]: value }));
 
-  const handleAddToCart = useCallback((plan: typeof PLANS[0]) => {
-    setState((s) => {
-      const existing = s.cart.find((i) => i.id === plan.id);
-      const newCart = existing
-        ? s.cart.map((i) => i.id === plan.id ? { ...i, qty: i.qty + 1 } : i)
-        : [...s.cart, { id: plan.id, name: plan.qty, qty: 1, bottles: plan.bottles, price: plan.price, originalPrice: plan.originalPrice, freeGift: plan.freeGift }];
-      return { ...s, cart: newCart, cartOpen: true };
+  // Dynamically map database products to PLANS
+  const activePlans: Plan[] = PLANS.map(plan => {
+    const matchedProduct = dbProducts.find(p => {
+      if (plan.id === 'single') return p.name.includes('1 Bottle');
+      if (plan.id === 'double') return p.name.includes('2 Bottles');
+      if (plan.id === 'triple') return p.name.includes('3 Bottles');
+      return false;
     });
-    toast.success(`${plan.qty} added to cart!`, {
-      description: plan.freeGift ? "FREE Bio-Collagen Deep Mask included." : "Free shipping included.",
-      duration: 3000,
-    });
-  }, []);
 
-  const handleQtyChange = useCallback((id: string, delta: number) => {
-    setState((s) => {
-      const newCart = s.cart
-        .map((i) => i.id === id ? { ...i, qty: i.qty + delta } : i)
-        .filter((i) => i.qty > 0);
-      return { ...s, cart: newCart };
-    });
-  }, []);
+    return {
+      ...plan,
+      dbId: matchedProduct?.id,
+      price: matchedProduct ? parseFloat(matchedProduct.discount_price || matchedProduct.regular_price) : plan.price,
+      originalPrice: matchedProduct ? parseFloat(matchedProduct.regular_price) : plan.originalPrice,
+    };
+  });
 
-  const handleRemove = useCallback((id: string) => {
-    setState((s) => ({ ...s, cart: s.cart.filter((i) => i.id !== id) }));
-    toast.info("Item removed from cart.");
-  }, []);
+  const handleAddToCart = useCallback(async (plan: Plan) => {
+    if (!plan.dbId) {
+      toast.error("Product catalog mapping not ready.");
+      return;
+    }
+
+    const token = localStorage.getItem('arglove_token');
+    if (token) {
+      try {
+        await api.addToCart(plan.dbId, 1);
+        await syncCartFromDb();
+        setOpen("cartOpen", true);
+        toast.success(`${plan.qty} added to cart!`);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to sync cart item.");
+      }
+    } else {
+      setState((s) => {
+        const existing = s.cart.find((i) => i.id === plan.id);
+        const newCart = existing
+          ? s.cart.map((i) => i.id === plan.id ? { ...i, qty: i.qty + 1 } : i)
+          : [...s.cart, { id: plan.id, name: plan.qty, qty: 1, bottles: plan.bottles, price: plan.price, originalPrice: plan.originalPrice, freeGift: plan.freeGift, dbId: plan.dbId }];
+        return { ...s, cart: newCart, cartOpen: true };
+      });
+      toast.success(`${plan.qty} added to cart locally!`, {
+        description: "Log in to save your cart permanently."
+      });
+    }
+  }, [dbProducts]);
+
+  const handleQtyChange = useCallback(async (id: string, delta: number) => {
+    const token = localStorage.getItem('arglove_token');
+    if (token) {
+      const item = state.cart.find(i => i.id === id);
+      if (item && item.dbId) {
+        const newQty = item.qty + delta;
+        try {
+          if (newQty <= 0) {
+            await api.removeFromCart(item.dbId);
+          } else {
+            await api.updateCart(item.dbId, newQty);
+          }
+          await syncCartFromDb();
+        } catch (err: any) {
+          toast.error(err.message || "Failed to update quantity on server.");
+        }
+      }
+    } else {
+      setState((s) => {
+        const newCart = s.cart
+          .map((i) => i.id === id ? { ...i, qty: i.qty + delta } : i)
+          .filter((i) => i.qty > 0);
+        return { ...s, cart: newCart };
+      });
+    }
+  }, [state.cart]);
+
+  const handleRemove = useCallback(async (id: string) => {
+    const token = localStorage.getItem('arglove_token');
+    if (token) {
+      const item = state.cart.find(i => i.id === id);
+      if (item && item.dbId) {
+        try {
+          await api.removeFromCart(item.dbId);
+          await syncCartFromDb();
+          toast.info("Item removed from cart.");
+        } catch (err: any) {
+          toast.error(err.message || "Failed to remove item on server.");
+        }
+      }
+    } else {
+      setState((s) => ({ ...s, cart: s.cart.filter((i) => i.id !== id) }));
+      toast.info("Item removed from cart.");
+    }
+  }, [state.cart]);
+
+  const handleLogin = async (email: string, pass: string) => {
+    const data = await api.login(email, pass);
+    localStorage.setItem('arglove_token', data.token);
+    await refreshUserData();
+    await syncLocalCartToDb(state.cart);
+  };
+
+  const handleRegister = async (email: string, pass: string) => {
+    const data = await api.register(email, pass);
+    localStorage.setItem('arglove_token', data.token);
+    await refreshUserData();
+    await syncLocalCartToDb(state.cart);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('arglove_token');
+    setUser(null);
+    setAddresses([]);
+    setOrders([]);
+    setSelectedAddressId(null);
+    setState(s => ({ ...s, cart: [] }));
+    toast.success("Signed out successfully.");
+  };
+
+  const handleAddAddress = async (addr: UserAddress) => {
+    await api.addAddress(addr);
+    await refreshUserData();
+  };
+
+  const handleDeleteAddress = async (id: number) => {
+    await api.deleteAddress(id);
+    await refreshUserData();
+  };
+
+  const handleCheckout = async () => {
+    if (!selectedAddressId) {
+      toast.error("Please select a shipping address first.");
+      return;
+    }
+    const addressObj = addresses.find(a => a.id === selectedAddressId);
+    if (!addressObj) {
+      toast.error("Invalid shipping address selected.");
+      return;
+    }
+
+    const fullAddressString = `${addressObj.recipient_name}, ${addressObj.street_address}, ${addressObj.city}, ${addressObj.state} - ${addressObj.postal_code}. Phone: ${addressObj.phone_number}`;
+
+    try {
+      const checkoutData = await api.createOrder(fullAddressString);
+
+      if (!(window as any).Razorpay) {
+        toast.info("Razorpay SDK not loaded, executing mock checkout bypass...");
+        await api.verifyPayment(
+          checkoutData.razorpay_order_id,
+          'pay_mock_' + Math.random().toString(36).substring(7),
+          'mock_sig_hash123'
+        );
+        toast.success("Order checked out successfully (dev fallback)!");
+        await syncCartFromDb();
+        await refreshUserData();
+        setState(s => ({ ...s, cartOpen: false }));
+        return;
+      }
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'dummy_id',
+        amount: checkoutData.amount * 100,
+        currency: checkoutData.currency,
+        name: 'ARGLOVE SKIN',
+        description: 'Exosome anti-aging products purchase',
+        order_id: checkoutData.razorpay_order_id,
+        handler: async function (response: any) {
+          try {
+            await api.verifyPayment(
+              checkoutData.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature
+            );
+            toast.success("Payment verified and order placed successfully!");
+            await syncCartFromDb();
+            await refreshUserData();
+            setState(s => ({ ...s, cartOpen: false }));
+          } catch (err: any) {
+            toast.error(err.message || "Payment verification failed.");
+          }
+        },
+        prefill: {
+          email: user?.email || '',
+          contact: addressObj.phone_number || ''
+        },
+        theme: {
+          color: '#FFCC00'
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate checkout order.");
+    }
+  };
 
   const cartCount = state.cart.reduce((sum, i) => sum + i.qty, 0);
 
@@ -1118,12 +1684,12 @@ export default function App() {
       />
       <main>
         <HeroSection onAddToCart={handleAddToCart} />
-        <BestsellerSection onAddToCart={handleAddToCart} />
+        <BestsellerSection onAddToCart={handleAddToCart} plans={activePlans} />
         <WhyItWorksSection />
         <TimelineSection />
         <ReviewsSection onVideoOpen={() => setOpen("videoOpen", true)} />
         <AboutSection />
-        <FinalCTASection onAddToCart={handleAddToCart} />
+        <FinalCTASection onAddToCart={handleAddToCart} plan={activePlans[0]} />
       </main>
       <Footer />
 
@@ -1133,9 +1699,26 @@ export default function App() {
         onClose={() => setOpen("cartOpen", false)}
         onQtyChange={handleQtyChange}
         onRemove={handleRemove}
+        user={user}
+        addresses={addresses}
+        selectedAddressId={selectedAddressId}
+        onSelectAddress={setSelectedAddressId}
+        onCheckout={handleCheckout}
+        onOpenAccount={() => { setOpen("cartOpen", false); setOpen("accountOpen", true); }}
       />
       <SearchModal open={state.searchOpen} onClose={() => setOpen("searchOpen", false)} />
-      <AccountModal open={state.accountOpen} onClose={() => setOpen("accountOpen", false)} />
+      <AccountModal
+        open={state.accountOpen}
+        onClose={() => setOpen("accountOpen", false)}
+        user={user}
+        addresses={addresses}
+        orders={orders}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+        onAddAddress={handleAddAddress}
+        onDeleteAddress={handleDeleteAddress}
+      />
       <VideoModal open={state.videoOpen} onClose={() => setOpen("videoOpen", false)} />
     </div>
   );
