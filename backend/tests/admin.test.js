@@ -1,7 +1,7 @@
 const request = require('supertest');
 const app = require('../app');
 const db = require('../config/db');
-const crypto = require('crypto');
+const { hashPassword } = require('../utils/password');
 
 const regularUser = {
   email: 'regularadmin@example.com',
@@ -17,23 +17,15 @@ let regularToken = '';
 let adminToken = '';
 let testProductId = null;
 
-// Secure password hash helper
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
 beforeAll(async () => {
-  // Clear any existing test accounts
   await db.query('DELETE FROM users WHERE email IN (?, ?)', [regularUser.email, adminUser.email]);
 
-  // Register regular customer user
   const regularRes = await request(app)
     .post('/api/auth/register')
     .send(regularUser);
   regularToken = regularRes.body.token;
 
-  // Insert admin account directly in database
-  const passwordHash = hashPassword(adminUser.password);
+  const passwordHash = await hashPassword(adminUser.password);
   await db.query(
     'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
     [adminUser.email, passwordHash, 'admin']

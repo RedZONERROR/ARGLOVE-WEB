@@ -1,11 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const mysql = require('mysql2/promise');
 const crypto = require('crypto');
-
-// Hash password helper using SHA256 (lightweight, native, zero compilation errors on Windows)
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
+const { hashPassword } = require('./utils/password');
 
 async function setup() {
   const dbConfig = {
@@ -114,6 +110,19 @@ async function setup() {
       ) ENGINE=InnoDB;
     `);
 
+    // CMS Content
+    console.log('Creating "cms_content" table...');
+    await connection.query(`
+      CREATE TABLE \`cms_content\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`section_key\` VARCHAR(100) NOT NULL UNIQUE,
+        \`content\` JSON NOT NULL,
+        \`updated_by\` INT DEFAULT NULL,
+        \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX (\`section_key\`)
+      ) ENGINE=InnoDB;
+    `);
+
     // Resources (Polymorphic Media)
     console.log('Creating "resources" table...');
     await connection.query(`
@@ -178,7 +187,7 @@ async function setup() {
         \`total_amount\` DECIMAL(10, 2) NOT NULL,
         \`shipping_address\` TEXT NOT NULL,
         \`razorpay_order_id\` VARCHAR(255) UNIQUE DEFAULT NULL,
-        \`status\` ENUM('pending', 'processing', 'completed', 'cancelled') DEFAULT 'pending',
+        \`status\` ENUM('pending', 'processing', 'completed', 'cancelled', 'refunded') DEFAULT 'pending',
         \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE RESTRICT,
         FOREIGN KEY (\`promo_code_id\`) REFERENCES \`promo_codes\`(\`id\`) ON DELETE SET NULL,
@@ -208,6 +217,7 @@ async function setup() {
         \`order_id\` INT NOT NULL,
         \`razorpay_order_id\` VARCHAR(255) NOT NULL,
         \`razorpay_payment_id\` VARCHAR(255) UNIQUE DEFAULT NULL,
+        \`razorpay_refund_id\` VARCHAR(255) DEFAULT NULL,
         \`razorpay_signature\` VARCHAR(255) DEFAULT NULL,
         \`payment_method\` VARCHAR(50) DEFAULT NULL,
         \`status\` ENUM('created', 'authorized', 'captured', 'failed', 'refunded') DEFAULT 'created',
@@ -282,26 +292,31 @@ async function setup() {
     console.log('Seeding initial data...');
 
     // Seed Admin Account
-    const adminEmail = 'admin@arglove.com';
-    const adminPassword = 'adminpassword123';
-    const adminHash = hashPassword(adminPassword);
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@arglove.com';
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
+    const adminHash = await hashPassword(adminPassword);
     const [adminResult] = await connection.query(
       'INSERT INTO \`users\` (\`email\`, \`password_hash\`, \`role\`) VALUES (?, ?, ?);',
       [adminEmail, adminHash, 'admin']
     );
     const adminId = adminResult.insertId;
-    console.log(`-> Created Admin Account: "${adminEmail}" (Password: "${adminPassword}")`);
+    console.log(`-> Created Admin Account: "${adminEmail}"`);
+    if (!process.env.SEED_ADMIN_PASSWORD) {
+      console.log(`   Generated password (save this): "${adminPassword}"`);
+    }
 
-    // Seed Customer Account
-    const customerEmail = 'customer@example.com';
-    const customerPassword = 'customer123';
-    const customerHash = hashPassword(customerPassword);
+    const customerEmail = process.env.SEED_CUSTOMER_EMAIL || 'customer@example.com';
+    const customerPassword = process.env.SEED_CUSTOMER_PASSWORD || crypto.randomBytes(12).toString('hex');
+    const customerHash = await hashPassword(customerPassword);
     const [customerResult] = await connection.query(
       'INSERT INTO \`users\` (\`email\`, \`password_hash\`, \`role\`) VALUES (?, ?, ?);',
       [customerEmail, customerHash, 'customer']
     );
     const customerId = customerResult.insertId;
-    console.log(`-> Created Customer Account: "${customerEmail}" (Password: "${customerPassword}")`);
+    console.log(`-> Created Customer Account: "${customerEmail}"`);
+    if (!process.env.SEED_CUSTOMER_PASSWORD) {
+      console.log(`   Generated password (save this): "${customerPassword}"`);
+    }
 
     // Seed Address
     await connection.query(`
@@ -357,6 +372,36 @@ async function setup() {
       [adminId]
     );
     console.log('-> Seeded initial blog post.');
+
+    // Seed default CMS content
+    const cmsDefaults = [
+      ['header', JSON.stringify({ logoText: 'ARGLOVE', logoSubText: 'SKIN' })],
+      ['marquee', JSON.stringify({ items: ['FREE Bio-Collagen Deep Mask With Every Order', 'Free Shipping Across India', 'Cash On Delivery Available', 'Exosome-Powered Skin Repair Technology'], bgColor: '#FFCC00', textColor: '#1A1A1A' })],
+      ['hero', JSON.stringify({ badge: 'New Generation Anti-Aging Technology', headline1: 'AGE LESS.', headline2: 'REPAIR', headline3: 'MORE.', description: 'Powered by Exosome Technology, Ethylated Vitamin C, Peptides, and Bio-Cellular Repair Science to visibly improve skin radiance, texture, hydration, firmness, and overall skin appearance.', ctaText: 'SHOP NOW', trustItems: ['4.9/5 Customer Rating', 'Thousands Of Happy Customers', 'Made For Indian Skin', 'Dermatologically Tested'], benefitItems: ['Improves Fine Lines', 'Supports Skin Firmness', 'Brightens Uneven Tone', 'Supports Skin Barrier', 'Deep Hydration', 'Fast Absorbing Formula'], customHtml: '' })],
+      ['bestseller', JSON.stringify({ badge: 'Bestseller', title: 'Choose Your Transformation', customHtml: '' })],
+      ['finalcta', JSON.stringify({ headline: 'READY TO TRANSFORM', subheadline: 'YOUR SKIN?', features: ['FREE Bio-Collagen Deep Mask', 'Free Shipping Across India', 'Cash On Delivery Available'], ctaText: 'BUY NOW', customHtml: '' })],
+      ['footer', JSON.stringify({ copyright: `© ${new Date().getFullYear()} ARGLOVE. All rights reserved. Results may vary.`, customHtml: '' })],
+      ['home', JSON.stringify({
+        blocks: [
+          { id: 'marquee', type: 'marquee' },
+          { id: 'hero', type: 'hero' },
+          { id: 'plans', type: 'plans' },
+          { id: 'why', type: 'why' },
+          { id: 'timeline', type: 'timeline' },
+          { id: 'reviews', type: 'reviews' },
+          { id: 'about', type: 'about' },
+          { id: 'finalcta', type: 'finalcta' }
+        ]
+      })],
+      ['site', JSON.stringify({ pages: [{ slug: 'home', title: 'Home' }], globalBlocks: [], globalCss: '' })],
+    ];
+    for (const [key, value] of cmsDefaults) {
+      await connection.query(
+        'INSERT IGNORE INTO `cms_content` (`section_key`, `content`) VALUES (?, ?)',
+        [key, value]
+      );
+    }
+    console.log('-> Seeded default CMS content.');
 
     console.log('\nDatabase setup and seeding completed successfully!');
 

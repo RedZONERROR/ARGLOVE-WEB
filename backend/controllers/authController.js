@@ -1,11 +1,15 @@
 const db = require('../config/db');
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
+const { getJwtSecret } = require('../config/security');
 
-// Password hash helper
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
+function signToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    getJwtSecret(),
+    { expiresIn: '24h' }
+  );
 }
 
 exports.register = async (req, res, next) => {
@@ -15,29 +19,29 @@ exports.register = async (req, res, next) => {
     return res.status(400).json({ error: { message: 'Email and password are required.' } });
   }
 
+  if (password.length < 8) {
+    return res.status(400).json({ error: { message: 'Password must be at least 8 characters.' } });
+  }
+
   try {
-    // Check if user already exists
     const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(400).json({ error: { message: 'Email is already registered.' } });
     }
 
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await hashPassword(password);
     const [result] = await db.query(
       'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
       [email, hashedPassword, 'customer']
     );
 
-    const token = jwt.sign(
-      { id: result.insertId, email, role: 'customer' },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '24h' }
-    );
+    const user = { id: result.insertId, email, role: 'customer' };
+    const token = signToken(user);
 
     res.status(201).json({
       message: 'User registered successfully.',
       token,
-      user: { id: result.insertId, email, role: 'customer' }
+      user,
     });
   } catch (error) {
     next(error);
@@ -62,21 +66,22 @@ exports.login = async (req, res, next) => {
       return res.status(403).json({ error: { message: 'Account is deactivated.' } });
     }
 
-    const hashedPassword = hashPassword(password);
-    if (user.password_hash !== hashedPassword) {
+    const valid = await verifyPassword(password, user.password_hash);
+    if (!valid) {
       return res.status(401).json({ error: { message: 'Invalid credentials.' } });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '24h' }
-    );
+    if (needsRehash(user.password_hash)) {
+      const newHash = await hashPassword(password);
+      await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, user.id]);
+    }
+
+    const token = signToken(user);
 
     res.status(200).json({
       message: 'Login successful.',
       token,
-      user: { id: user.id, email: user.email, role: user.role }
+      user: { id: user.id, email: user.email, role: user.role },
     });
   } catch (error) {
     next(error);
@@ -96,16 +101,12 @@ exports.getProfile = async (req, res, next) => {
 
     const user = users[0];
 
-    // Fetch associated address details
     const [addresses] = await db.query(
       'SELECT id, address_type, recipient_name, street_address, city, state, postal_code, phone_number FROM user_addresses WHERE user_id = ?',
       [req.user.id]
     );
 
-    res.status(200).json({
-      user,
-      addresses
-    });
+    res.status(200).json({ user, addresses });
   } catch (error) {
     next(error);
   }
@@ -124,8 +125,8 @@ exports.forgotPassword = async (req, res, next) => {
     }
 
     const user = users[0];
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiry = new Date(Date.now() + 3600000); // 1 hour
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 3600000);
 
     await db.query(
       'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
@@ -147,10 +148,7 @@ exports.forgotPassword = async (req, res, next) => {
         const transporter = nodemailer.createTransport({
           host: smtpHost,
           port: parseInt(smtpPort, 10),
-          auth: {
-            user: smtpUser,
-            pass: smtpPass
-          }
+          auth: { user: smtpUser, pass: smtpPass },
         });
 
         await transporter.sendMail({
@@ -158,20 +156,25 @@ exports.forgotPassword = async (req, res, next) => {
           to: email,
           subject: 'Reset Password Request',
           text: emailBody,
-          html: `<p>${emailBody}</p>`
+          html: `<p>${emailBody}</p>`,
         });
         emailSent = true;
       } catch (mailError) {
-        console.error('Nodemailer failed to send email, falling back to console:', mailError);
+        console.error('Nodemailer failed to send email:', mailError);
       }
     }
 
     if (!emailSent) {
       console.log(`\n--- PASSWORD RESET EMAIL (FALLBACK) ---\nTo: ${email}\nLink: ${resetUrl}\n---------------------------------------\n`);
+      if (process.env.NODE_ENV === 'test') {
+        return res.status(200).json({
+          message: 'Password reset link generated (test fallback).',
+          resetUrl,
+          token,
+        });
+      }
       return res.status(200).json({
-        message: 'Password reset link generated (dev fallback).',
-        resetUrl,
-        token
+        message: 'If an account exists for this email, a reset link has been sent.',
       });
     }
 
@@ -187,6 +190,10 @@ exports.resetPassword = async (req, res, next) => {
     return res.status(400).json({ error: { message: 'Token and new password are required.' } });
   }
 
+  if (password.length < 8) {
+    return res.status(400).json({ error: { message: 'Password must be at least 8 characters.' } });
+  }
+
   try {
     const [users] = await db.query(
       'SELECT id, reset_token_expiry FROM users WHERE reset_token = ?',
@@ -198,13 +205,11 @@ exports.resetPassword = async (req, res, next) => {
     }
 
     const user = users[0];
-    const expiry = new Date(user.reset_token_expiry);
-
-    if (expiry < new Date()) {
+    if (new Date(user.reset_token_expiry) < new Date()) {
       return res.status(400).json({ error: { message: 'Invalid or expired token.' } });
     }
 
-    const hashedPassword = hashPassword(password);
+    const hashedPassword = await hashPassword(password);
     await db.query(
       'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?',
       [hashedPassword, user.id]

@@ -24,7 +24,7 @@ exports.getBlogById = async (req, res, next) => {
       `SELECT b.id, b.title, b.content, b.status, b.published_at, u.email AS author_email 
        FROM blogs b 
        JOIN users u ON b.author_id = u.id 
-       WHERE b.id = ?`,
+       WHERE b.id = ? AND b.status = 'published'`,
       [id]
     );
 
@@ -70,7 +70,7 @@ exports.addComment = async (req, res, next) => {
 
   try {
     // Check if the blog post exists
-    const [blogs] = await db.query('SELECT id FROM blogs WHERE id = ?', [id]);
+    const [blogs] = await db.query('SELECT id FROM blogs WHERE id = ? AND status = ?', [id, 'published']);
     if (blogs.length === 0) {
       return res.status(404).json({ error: { message: 'Blog post not found.' } });
     }
