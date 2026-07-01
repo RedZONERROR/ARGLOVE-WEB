@@ -728,8 +728,8 @@ export default function VisualEditor() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 min-h-0">
-          <div ref={previewRef} className="flex-1 overflow-y-auto" style={{ background: "#f5f5f5" }}>
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+          <div ref={previewRef} className="flex-1 overflow-y-auto min-h-[50vh] lg:min-h-0" style={{ background: "#f5f5f5" }}>
             <style>{`
               .cms-el-highlight {
                 outline: 2px solid #3b82f6 !important;
@@ -814,7 +814,7 @@ export default function VisualEditor() {
             </div>
           </div>
 
-          <aside className="w-[440px] shrink-0 border-l border-white/10 flex flex-col overflow-hidden" style={{ background: "#0B0B0B" }}>
+          <aside className="w-full lg:w-[440px] shrink-0 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col overflow-hidden max-h-[45vh] lg:max-h-none" style={{ background: "#0B0B0B" }}>
             <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-white/70">
               <Layers size={14} /> Page structure
             </div>

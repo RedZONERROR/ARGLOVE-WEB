@@ -234,6 +234,61 @@ const HERO_GALLERY_LAYOUT: React.CSSProperties[] = [
   { width: 130, height: 160, top: "38%", left: "2%", transform: "rotate(1.5deg)" },
 ];
 
+function HeroVisualComposition({
+  heroImage,
+  galleryImages,
+  floatingLabels,
+  cms,
+  featuredPlanName,
+}: {
+  heroImage: string;
+  galleryImages: string[];
+  floatingLabels: string[];
+  cms?: any;
+  featuredPlanName: string;
+}) {
+  return (
+    <>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 70% at 50% 45%, rgba(255,204,0,0.12) 0%, transparent 70%)" }} />
+
+      <div
+        className="absolute z-20 rounded-3xl overflow-hidden"
+        style={{ width: 210, height: 420, left: "50%", top: "50%", transform: "translate(-50%, -50%)", boxShadow: "0 32px 80px rgba(0,0,0,0.14), 0 8px 24px rgba(212,175,55,0.2)" }}
+      >
+        <img
+          data-cms-el="hero.imageUrl"
+          src={heroImage}
+          alt={plainTextFromHtml(featuredPlanName)}
+          style={{ background: "#FFF9E6", ...buildImageStyle(readImageSize(cms, "imageUrl"), { width: "100%", height: "100%", objectFit: "cover" }) }}
+        />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, rgba(255,204,0,0.08) 100%)" }} />
+      </div>
+
+      {galleryImages.map((src, i) => (
+        <div
+          key={i}
+          data-cms-el="hero.galleryImages"
+          className="absolute rounded-2xl overflow-hidden z-10"
+          style={{ boxShadow: "0 12px 40px rgba(0,0,0,0.12)", ...HERO_GALLERY_LAYOUT[i] }}
+        >
+          <img src={src} alt={`Lifestyle ${i + 1}`} className="w-full h-full object-cover" style={{ background: "#FFF9E6" }} />
+        </div>
+      ))}
+
+      {floatingLabels.map((label, i) => (
+        <div
+          key={i}
+          data-cms-el="hero.floatingLabels"
+          className="absolute z-30 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
+          style={{ background: "rgba(255,255,255,0.96)", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", border: "1px solid rgba(212,175,55,0.25)", backdropFilter: "blur(8px)", letterSpacing: "0.02em", ...FLOATING_CARD_POSITIONS[i] }}
+        >
+          <span style={{ color: "#D4AF37" }}>&#9670;</span>{" "}{label}
+        </div>
+      ))}
+    </>
+  );
+}
+
 const INGREDIENTS = [
   { name: "5% Ethylated Vitamin C", benefit: "Brightens uneven skin tone and supports collagen production without irritation" },
   { name: "2% Exosome Complex", benefit: "Cell-to-cell communication technology that helps accelerate skin renewal and repair" },
@@ -340,7 +395,7 @@ export function Header({
   return (
     <>
       <header
-        className="left-0 right-0 z-50 flex items-center justify-between px-8 transition-all duration-300 w-full"
+        className="left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 transition-all duration-300 w-full"
         style={{
           position: editorMode ? "relative" : "fixed",
           top: editorMode ? 0 : 40,
@@ -373,7 +428,7 @@ export function Header({
           </span>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <button
             onClick={onSearchOpen}
             className="p-1.5 rounded-full transition-colors duration-200 hover:bg-black/5"
@@ -411,7 +466,7 @@ export function Header({
         </div>
       </header>
       {cms?.customHtml && !cms?.useHtmlOnly ? (
-        <div className="px-8 py-2" style={{ marginTop: editorMode ? 0 : undefined }}>
+        <div className="px-4 sm:px-8 py-2" style={{ marginTop: editorMode ? 0 : undefined }}>
           <CmsHtmlCssBlock html={String(cms.customHtml)} css={String(cms.customCss || "")} scopeId="header-inline" raw={isCssGlobal("header", cms)} omitCss={isCssGlobal("header", cms)} />
         </div>
       ) : null}
@@ -456,25 +511,25 @@ export function HeroSection({ featuredPlan, cms }: { featuredPlan: Plan; cms?: a
 
   return (
     <section
-      className="relative w-full overflow-hidden"
-      style={{ height: "100vh", minHeight: 700, background: "#FFFFFF", paddingTop: 110 }}
+      className="relative w-full overflow-hidden pt-24 sm:pt-[110px] lg:min-h-[700px] lg:h-screen"
+      style={{ background: "#FFFFFF" }}
     >
-      <div className="h-full grid grid-cols-5 max-w-[1400px] mx-auto px-8 gap-4">
+      <div className="h-full grid grid-cols-1 lg:grid-cols-5 max-w-[1400px] mx-auto px-4 sm:px-8 gap-6 lg:gap-4">
         {/* LEFT CONTENT */}
-        <div className="col-span-2 flex flex-col justify-center pr-8 gap-6">
+        <div className="col-span-1 lg:col-span-2 flex flex-col justify-center lg:pr-8 gap-5 lg:gap-6 pb-8 lg:pb-0">
           <CmsAnchor cms={cms} insertAfter={ELEMENT_INSERT_START} scopeId="hero" />
           <div>
             <RichTextContent
               html={badge}
               as="span"
               inline
-              className="inline-block text-[10px] font-semibold tracking-[0.25em] uppercase px-3 py-1.5 rounded-full mb-5"
+              className="inline-block text-[10px] font-semibold tracking-[0.25em] uppercase px-3 py-1.5 rounded-full mb-4 lg:mb-5"
               style={{ background: "#FFF9E6", color: "#D4AF37", fontFamily: "'Plus Jakarta Sans', sans-serif", border: "1px solid rgba(212,175,55,0.3)" }}
               data-cms-el="hero.badge"
             />
             <CmsAnchor cms={cms} insertAfter="hero.badge" scopeId="hero" />
             <h1
-              style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: "clamp(52px, 5.5vw, 82px)", color: "#1A1A1A", lineHeight: 0.95, letterSpacing: "-0.02em" }}
+              style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: "clamp(44px, 11vw, 82px)", color: "#1A1A1A", lineHeight: 0.95, letterSpacing: "-0.02em" }}
             >
               <RichTextContent html={headline1} as="span" inline data-cms-el="hero.headline1" />
               <br />
@@ -484,15 +539,34 @@ export function HeroSection({ featuredPlan, cms }: { featuredPlan: Plan; cms?: a
             </h1>
           </div>
 
+          {/* Mobile hero visual — scaled desktop composition */}
+          <div className="lg:hidden relative w-full overflow-hidden" style={{ height: "clamp(280px, 68vw, 380px)" }}>
+            <div
+              className="absolute left-1/2 top-1/2 w-[680px] h-[500px]"
+              style={{ transform: "translate(-50%, -50%) scale(0.52)", transformOrigin: "center center" }}
+            >
+              <div className="relative w-full h-full">
+                <HeroVisualComposition
+                  heroImage={heroImage}
+                  galleryImages={galleryImages}
+                  floatingLabels={floatingLabels}
+                  cms={cms}
+                  featuredPlanName={featuredPlan.name}
+                />
+              </div>
+            </div>
+          </div>
+
           <RichTextContent
             html={description}
             as="p"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "#555", maxWidth: 380, lineHeight: 1.75 }}
+            className="max-w-full lg:max-w-[380px]"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, color: "#555", lineHeight: 1.75 }}
             data-cms-el="hero.description"
           />
           <CmsAnchor cms={cms} insertAfter="hero.description" scopeId="hero" />
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2">
             {benefitItems.map((b) => (
               <div key={b} className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#FFCC00" }} />
@@ -502,7 +576,7 @@ export function HeroSection({ featuredPlan, cms }: { featuredPlan: Plan; cms?: a
           </div>
 
           {/* Pricing */}
-          <div className="rounded-2xl p-5 inline-flex flex-col gap-1" style={{ background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.25)" }}>
+          <div className="rounded-2xl p-5 flex flex-col gap-1 w-full sm:w-auto sm:inline-flex" style={{ background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.25)" }}>
             <div className="flex items-center gap-3">
               <span style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 36, color: "#1A1A1A", lineHeight: 1 }}>&#8377;{featuredPlan.price.toLocaleString("en-IN")}</span>
               <div className="flex flex-col">
@@ -520,8 +594,8 @@ export function HeroSection({ featuredPlan, cms }: { featuredPlan: Plan; cms?: a
           <button
             data-cms-el="hero.ctaText"
             onClick={scrollToBestseller}
-            className="font-bold tracking-[0.12em] uppercase transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-            style={{ background: "#FFCC00", color: "#1A1A1A", width: 300, height: 60, borderRadius: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, letterSpacing: "0.12em", border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(255,204,0,0.4)" }}
+            className="w-full sm:max-w-[300px] font-bold tracking-[0.12em] uppercase transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+            style={{ background: "#FFCC00", color: "#1A1A1A", height: 56, borderRadius: 12, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, letterSpacing: "0.12em", border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(255,204,0,0.4)" }}
           >
             <RichTextContent html={ctaText} inline />
           </button>
@@ -548,47 +622,15 @@ export function HeroSection({ featuredPlan, cms }: { featuredPlan: Plan; cms?: a
           <SectionCustomElements cms={cms} scopeId="hero" />
         </div>
 
-        {/* RIGHT VISUAL */}
-        <div className="col-span-3 relative flex items-center justify-center">
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 70% at 50% 45%, rgba(255,204,0,0.12) 0%, transparent 70%)" }} />
-
-          {/* Main bottle */}
-          <div
-            className="absolute z-20 rounded-3xl overflow-hidden"
-            style={{ width: "clamp(160px, 18vw, 240px)", height: "clamp(320px, 36vw, 480px)", left: "50%", top: "50%", transform: "translate(-50%, -50%)", boxShadow: "0 32px 80px rgba(0,0,0,0.14), 0 8px 24px rgba(212,175,55,0.2)" }}
-          >
-            <img
-              data-cms-el="hero.imageUrl"
-              src={heroImage}
-              alt={plainTextFromHtml(featuredPlan.name)}
-              style={{ background: "#FFF9E6", ...buildImageStyle(readImageSize(cms, "imageUrl"), { width: "100%", height: "100%", objectFit: "cover" }) }}
-            />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 40%, rgba(255,204,0,0.08) 100%)" }} />
-          </div>
-
-          {/* Lifestyle images */}
-          {galleryImages.map((src, i) => (
-            <div
-              key={i}
-              data-cms-el="hero.galleryImages"
-              className="absolute rounded-2xl overflow-hidden z-10"
-              style={{ boxShadow: "0 12px 40px rgba(0,0,0,0.12)", ...HERO_GALLERY_LAYOUT[i] }}
-            >
-              <img src={src} alt={`Lifestyle ${i + 1}`} className="w-full h-full object-cover" style={{ background: "#FFF9E6" }} />
-            </div>
-          ))}
-
-          {/* Floating ingredient cards */}
-          {floatingLabels.map((label, i) => (
-            <div
-              key={i}
-              data-cms-el="hero.floatingLabels"
-              className="absolute z-30 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-              style={{ background: "rgba(255,255,255,0.96)", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", border: "1px solid rgba(212,175,55,0.25)", backdropFilter: "blur(8px)", letterSpacing: "0.02em", ...FLOATING_CARD_POSITIONS[i] }}
-            >
-              <span style={{ color: "#D4AF37" }}>&#9670;</span>{" "}{label}
-            </div>
-          ))}
+        {/* RIGHT VISUAL — desktop only */}
+        <div className="hidden lg:flex col-span-3 relative items-center justify-center min-h-[420px]">
+          <HeroVisualComposition
+            heroImage={heroImage}
+            galleryImages={galleryImages}
+            floatingLabels={floatingLabels}
+            cms={cms}
+            featuredPlanName={featuredPlan.name}
+          />
         </div>
       </div>
 
@@ -627,7 +669,7 @@ export function BestsellerSection({ onAddToCart, plans, cms }: { onAddToCart: (p
         cms={cms}
         scopeId="bestseller"
         fallback={null}
-        wrapperClassName="py-24 px-8"
+        wrapperClassName="py-16 sm:py-24 px-4 sm:px-8"
         wrapperStyle={{ background: "#FFF9E6" }}
       />
     );
@@ -641,7 +683,7 @@ export function BestsellerSection({ onAddToCart, plans, cms }: { onAddToCart: (p
     triple: String(cms?.planImage3 || "").trim(),
   };
   return (
-    <section id="bestseller" className="py-24 px-8" style={{ background: "#FFF9E6" }}>
+    <section id="bestseller" className="py-16 sm:py-24 px-4 sm:px-8" style={{ background: "#FFF9E6" }}>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <RichTextContent
@@ -680,7 +722,7 @@ export function BestsellerSection({ onAddToCart, plans, cms }: { onAddToCart: (p
                   {plan.tag}
                 </div>
               )}
-              <div className="p-8 flex flex-col gap-4 flex-1">
+              <div className="p-6 sm:p-8 flex flex-col gap-4 flex-1">
                 <div className="rounded-2xl overflow-hidden" style={{ height: 180, background: plan.highlighted ? "rgba(255,255,255,0.3)" : "#FFF9E6" }}>
                   <img
                     data-cms-el={`bestseller.planImage${planIndex + 1}`}
@@ -744,7 +786,7 @@ export function WhyItWorksSection({ cms }: { cms?: any }) {
         cms={cms}
         scopeId="why"
         fallback={null}
-        wrapperClassName="py-24 px-8"
+        wrapperClassName="py-16 sm:py-24 px-4 sm:px-8"
         wrapperStyle={{ background: "#FFFFFF" }}
       />
     );
@@ -762,9 +804,9 @@ export function WhyItWorksSection({ cms }: { cms?: any }) {
   const statLabel = cmsString(cms, "statLabel", "Active Ingredient Complexes Working Together");
 
   return (
-    <section className="py-24 px-8" style={{ background: "#FFFFFF" }}>
+    <section className="py-16 sm:py-24 px-4 sm:px-8" style={{ background: "#FFFFFF" }}>
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
             <RichTextContent html={badge} as="span" inline className="inline-block text-[10px] font-semibold tracking-[0.25em] uppercase px-3 py-1.5 rounded-full mb-5" style={{ background: "#FFF9E6", color: "#D4AF37", fontFamily: "'Plus Jakarta Sans', sans-serif", border: "1px solid rgba(212,175,55,0.3)" }} data-cms-el="why.badge" />
             <RichTextContent html={title} as="h2" className="mb-4" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "clamp(30px, 3.5vw, 48px)", color: "#1A1A1A", lineHeight: 1.1 }} data-cms-el="why.title" />
@@ -782,7 +824,7 @@ export function WhyItWorksSection({ cms }: { cms?: any }) {
             </div>
           </div>
           <div className="relative">
-            <div className="rounded-3xl overflow-hidden" style={{ height: 580, boxShadow: "0 24px 80px rgba(0,0,0,0.12)" }}>
+            <div className="rounded-3xl overflow-hidden h-[280px] sm:h-[420px] lg:h-[580px]" style={{ boxShadow: "0 24px 80px rgba(0,0,0,0.12)" }}>
               <img
                 data-cms-el="why.imageUrl"
                 src={imageUrl}
@@ -791,7 +833,7 @@ export function WhyItWorksSection({ cms }: { cms?: any }) {
               />
               <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(255,204,0,0.08) 0%, transparent 60%)" }} />
             </div>
-            <div className="absolute -bottom-6 -left-6 rounded-2xl p-5" style={{ background: "#FFCC00", boxShadow: "0 12px 40px rgba(255,204,0,0.3)", width: 200 }}>
+            <div className="relative sm:absolute sm:-bottom-6 sm:-left-6 mt-4 sm:mt-0 rounded-2xl p-5" style={{ background: "#FFCC00", boxShadow: "0 12px 40px rgba(255,204,0,0.3)", width: 200, maxWidth: "100%" }}>
               <RichTextContent html={statNumber} as="p" className="text-3xl font-bold mb-1" style={{ fontFamily: "'Fraunces', serif", color: "#1A1A1A" }} data-cms-el="why.statNumber" />
               <RichTextContent html={statLabel} as="p" className="text-xs font-semibold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#1A1A1A" }} data-cms-el="why.statLabel" />
             </div>
@@ -813,7 +855,7 @@ export function TimelineSection({ cms }: { cms?: any }) {
         cms={cms}
         scopeId="timeline"
         fallback={null}
-        wrapperClassName="py-24 px-8"
+        wrapperClassName="py-16 sm:py-24 px-4 sm:px-8"
         wrapperStyle={{ background: "#FFF9E6" }}
       />
     );
@@ -824,14 +866,14 @@ export function TimelineSection({ cms }: { cms?: any }) {
   const imgs = cmsImageList(cms, "timelineImages", DEFAULT_TIMELINE_IMAGES);
 
   return (
-    <section className="py-24 px-8" style={{ background: "#FFF9E6" }}>
+    <section className="py-16 sm:py-24 px-4 sm:px-8" style={{ background: "#FFF9E6" }}>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <RichTextContent html={badge} as="span" inline className="inline-block text-[10px] font-semibold tracking-[0.25em] uppercase px-3 py-1.5 rounded-full mb-4" style={{ background: "#FFCC00", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif" }} data-cms-el="timeline.badge" />
           <RichTextContent html={title} as="h2" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "clamp(30px, 3.5vw, 48px)", color: "#1A1A1A", lineHeight: 1.1 }} data-cms-el="timeline.title" />
         </div>
-        <div className="grid grid-cols-4 gap-6 relative">
-          <div className="absolute top-12 left-[12.5%] right-[12.5%] h-px pointer-events-none" style={{ background: "linear-gradient(to right, #FFCC00, #D4AF37, #FFCC00, #D4AF37)" }} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+          <div className="hidden lg:block absolute top-12 left-[12.5%] right-[12.5%] h-px pointer-events-none" style={{ background: "linear-gradient(to right, #FFCC00, #D4AF37, #FFCC00, #D4AF37)" }} />
           {TIMELINE.map((step, i) => (
             <div key={i} className="relative flex flex-col items-center text-center">
               <div className="relative z-10 w-24 h-24 rounded-2xl overflow-hidden mb-4 flex-shrink-0" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.10)" }}>
@@ -865,7 +907,7 @@ export function ReviewsSection({ onVideoOpen, cms }: { onVideoOpen: () => void; 
         cms={cms}
         scopeId="reviews"
         fallback={null}
-        wrapperClassName="py-24 px-8"
+        wrapperClassName="py-16 sm:py-24 px-4 sm:px-8"
         wrapperStyle={{ background: "#FFFFFF" }}
       />
     );
@@ -882,7 +924,7 @@ export function ReviewsSection({ onVideoOpen, cms }: { onVideoOpen: () => void; 
   const statBars = statLabels.map((label, i) => [label, Number(statValues[i] || 0)] as const);
 
   return (
-    <section className="py-24 px-8" style={{ background: "#FFFFFF" }}>
+    <section className="py-16 sm:py-24 px-4 sm:px-8" style={{ background: "#FFFFFF" }}>
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <RichTextContent html={badge} as="span" inline className="inline-block text-[10px] font-semibold tracking-[0.25em] uppercase px-3 py-1.5 rounded-full mb-4" style={{ background: "#FFF9E6", color: "#D4AF37", fontFamily: "'Plus Jakarta Sans', sans-serif", border: "1px solid rgba(212,175,55,0.3)" }} data-cms-el="reviews.badge" />
@@ -890,37 +932,37 @@ export function ReviewsSection({ onVideoOpen, cms }: { onVideoOpen: () => void; 
         </div>
 
         {/* Rating summary */}
-        <div className="flex items-center justify-center gap-8 mb-14 p-8 rounded-3xl" style={{ background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.2)" }}>
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 mb-14 p-6 sm:p-8 rounded-3xl" style={{ background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.2)" }}>
           <div className="text-center">
-            <RichTextContent html={rating} as="p" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: 72, color: "#1A1A1A", lineHeight: 1 }} data-cms-el="reviews.rating" />
+            <RichTextContent html={rating} as="p" style={{ fontFamily: "'Fraunces', serif", fontWeight: 900, fontSize: "clamp(48px, 12vw, 72px)", color: "#1A1A1A", lineHeight: 1 }} data-cms-el="reviews.rating" />
             <div className="flex items-center justify-center gap-1 mt-2">{[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#FFCC00" stroke="none" />)}</div>
             <p className="text-xs mt-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#999" }}>Overall Rating</p>
           </div>
-          <div className="w-px h-20" style={{ background: "rgba(212,175,55,0.3)" }} />
-          <div className="flex flex-col gap-2" data-cms-el="reviews.statLabels">
+          <div className="hidden lg:block w-px h-20 shrink-0" style={{ background: "rgba(212,175,55,0.3)" }} />
+          <div className="w-full max-w-md flex flex-col gap-2" data-cms-el="reviews.statLabels">
             {statBars.map(([label, pct]) => (
-              <div key={String(label)} className="flex items-center gap-3">
-                <span className="text-xs font-medium w-28" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>{label}</span>
-                <div className="w-40 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(212,175,55,0.2)" }}>
+              <div key={String(label)} className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xs font-medium w-20 sm:w-28 shrink-0" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#555" }}>{label}</span>
+                <div className="flex-1 min-w-0 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(212,175,55,0.2)" }}>
                   <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "#FFCC00" }} />
                 </div>
-                <span className="text-xs font-semibold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#D4AF37" }}>{pct}%</span>
+                <span className="text-xs font-semibold shrink-0" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#D4AF37" }}>{pct}%</span>
               </div>
             ))}
           </div>
-          <div className="w-px h-20" style={{ background: "rgba(212,175,55,0.3)" }} />
+          <div className="hidden lg:block w-px h-20 shrink-0" style={{ background: "rgba(212,175,55,0.3)" }} />
           <div className="text-center">
-            <RichTextContent html={customers} as="p" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 36, color: "#1A1A1A", lineHeight: 1 }} data-cms-el="reviews.customers" />
+            <RichTextContent html={customers} as="p" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "clamp(28px, 6vw, 36px)", color: "#1A1A1A", lineHeight: 1 }} data-cms-el="reviews.customers" />
             <p className="text-xs mt-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#999" }}>Happy Customers</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Video card */}
           <button
             onClick={onVideoOpen}
-            className="col-span-1 rounded-3xl overflow-hidden relative cursor-pointer group text-left"
-            style={{ height: 340, border: "none", padding: 0 }}
+            className="lg:col-span-1 rounded-3xl overflow-hidden relative cursor-pointer group text-left w-full"
+            style={{ height: 280, border: "none", padding: 0 }}
             aria-label="Watch customer story video"
           >
             <img
@@ -939,7 +981,7 @@ export function ReviewsSection({ onVideoOpen, cms }: { onVideoOpen: () => void; 
           </button>
 
           {/* Review cards */}
-          <div className="col-span-2 grid grid-cols-2 gap-4">
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {REVIEWS.map((r) => (
               <div key={r.name} className="rounded-2xl p-6 flex flex-col gap-3" style={{ background: "#FFF9E6", border: "1px solid rgba(212,175,55,0.2)" }}>
                 <div className="flex gap-0.5">{[...Array(r.rating)].map((_, i) => <Star key={i} size={12} fill="#FFCC00" stroke="none" />)}</div>
@@ -968,7 +1010,7 @@ export function AboutSection({ cms }: { cms?: any }) {
         cms={cms}
         scopeId="about"
         fallback={null}
-        wrapperClassName="py-24 px-8"
+        wrapperClassName="py-16 sm:py-24 px-4 sm:px-8"
         wrapperStyle={{ background: "#FFF9E6" }}
       />
     );
@@ -981,10 +1023,10 @@ export function AboutSection({ cms }: { cms?: any }) {
   const cardTitle = cmsString(cms, "cardTitle", "For Indian Skin");
 
   return (
-    <section className="py-24 px-8" style={{ background: "#FFF9E6" }}>
-      <div className="max-w-6xl mx-auto grid grid-cols-2 gap-16 items-center">
-        <div className="relative">
-          <div className="rounded-3xl overflow-hidden" style={{ height: 520, boxShadow: "0 24px 80px rgba(0,0,0,0.10)" }}>
+    <section className="py-16 sm:py-24 px-4 sm:px-8" style={{ background: "#FFF9E6" }}>
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div className="relative order-2 lg:order-1">
+          <div className="rounded-3xl overflow-hidden h-[280px] sm:h-[400px] lg:h-[520px]" style={{ boxShadow: "0 24px 80px rgba(0,0,0,0.10)" }}>
             <img
               data-cms-el="about.imageUrl"
               src={imageUrl}
@@ -992,12 +1034,12 @@ export function AboutSection({ cms }: { cms?: any }) {
               style={{ background: "#FFF9E6", ...buildImageStyle(readImageSize(cms, "imageUrl"), { width: "100%", height: "100%", objectFit: "cover" }) }}
             />
           </div>
-          <div className="absolute -top-4 -right-4 rounded-2xl p-6" style={{ background: "#FFFFFF", boxShadow: "0 8px 32px rgba(0,0,0,0.08)", border: "1px solid rgba(212,175,55,0.2)", width: 180 }}>
+          <div className="relative sm:absolute sm:-top-4 sm:-right-4 mt-4 sm:mt-0 rounded-2xl p-6" style={{ background: "#FFFFFF", boxShadow: "0 8px 32px rgba(0,0,0,0.08)", border: "1px solid rgba(212,175,55,0.2)", width: 180, maxWidth: "100%" }}>
             <RichTextContent html={cardLabel} as="p" className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#D4AF37" }} data-cms-el="about.cardLabel" />
             <RichTextContent html={cardTitle} as="p" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 22, color: "#1A1A1A" }} data-cms-el="about.cardTitle" />
           </div>
         </div>
-        <div>
+        <div className="order-1 lg:order-2">
           <RichTextContent html={badge} as="span" inline className="inline-block text-[10px] font-semibold tracking-[0.25em] uppercase px-3 py-1.5 rounded-full mb-5" style={{ background: "#FFCC00", color: "#1A1A1A", fontFamily: "'Plus Jakarta Sans', sans-serif" }} data-cms-el="about.badge" />
           <RichTextContent html={title} as="h2" className="mb-6" style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "clamp(28px, 3vw, 44px)", color: "#1A1A1A", lineHeight: 1.15 }} data-cms-el="about.title" />
           {[
@@ -1031,7 +1073,7 @@ export function FinalCTASection({ onAddToCart, plan, cms }: { onAddToCart: (plan
         cms={cms}
         scopeId="finalcta"
         fallback={null}
-        wrapperClassName="py-28 px-8"
+        wrapperClassName="py-16 sm:py-28 px-4 sm:px-8"
         wrapperStyle={{ background: "#FFFFFF" }}
       />
     );
@@ -1046,7 +1088,7 @@ export function FinalCTASection({ onAddToCart, plan, cms }: { onAddToCart: (plan
   const bottomStats = cmsStringList(cms, "bottomStats", ["4.9/5 Rating", "12,000+ Customers", "Dermatologically Tested", "Made For Indian Skin"]);
 
   return (
-    <section className="relative overflow-hidden py-28 px-8 text-center" style={{ background: "#FFFFFF" }}>
+    <section className="relative overflow-hidden py-16 sm:py-28 px-4 sm:px-8 text-center" style={{ background: "#FFFFFF" }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 80% at 50% 50%, rgba(255,204,0,0.10) 0%, transparent 70%)" }} />
       <div className="relative max-w-4xl mx-auto flex flex-col items-center gap-8">
         <div className="rounded-3xl overflow-hidden mx-auto" style={{ width: 200, height: 320, boxShadow: "0 32px 80px rgba(0,0,0,0.12)" }}>
@@ -1062,13 +1104,13 @@ export function FinalCTASection({ onAddToCart, plan, cms }: { onAddToCart: (plan
           <br />
           <RichTextContent html={subheadline} as="span" inline style={{ color: "#D4AF37", fontStyle: "italic" }} data-cms-el="finalcta.subheadline" />
         </h2>
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-6 w-full max-w-lg mx-auto">
           <div className="text-center">
-            <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 42, color: "#1A1A1A", lineHeight: 1 }}>&#8377;{plan.price.toLocaleString("en-IN")}</p>
+            <p style={{ fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: "clamp(32px, 8vw, 42px)", color: "#1A1A1A", lineHeight: 1 }}>&#8377;{plan.price.toLocaleString("en-IN")}</p>
             <p className="text-sm mt-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#999", textDecoration: "line-through" }}>MRP &#8377;{plan.originalPrice.toLocaleString("en-IN")}</p>
           </div>
-          <div className="w-px h-16" style={{ background: "rgba(212,175,55,0.3)" }} />
-          <div className="text-left flex flex-col gap-1.5">
+          <div className="hidden sm:block w-px h-16 shrink-0" style={{ background: "rgba(212,175,55,0.3)" }} />
+          <div className="text-left flex flex-col gap-1.5 w-full sm:w-auto">
             {features.map((f) => (
               <p key={f} className="flex items-center gap-2 text-sm" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#444" }}>
                 <Check size={14} strokeWidth={2.5} style={{ color: "#D4AF37" }} />
@@ -1087,8 +1129,8 @@ export function FinalCTASection({ onAddToCart, plan, cms }: { onAddToCart: (plan
         <button
           data-cms-el="finalcta.ctaText"
           onClick={() => plan && onAddToCart(plan)}
-          className="font-bold tracking-[0.14em] uppercase transition-all duration-200 hover:shadow-2xl active:scale-[0.98]"
-          style={{ background: "#FFCC00", color: "#1A1A1A", width: 320, height: 64, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, letterSpacing: "0.14em", border: "none", cursor: "pointer", boxShadow: "0 8px 40px rgba(255,204,0,0.45)" }}
+          className="w-full max-w-[320px] font-bold tracking-[0.14em] uppercase transition-all duration-200 hover:shadow-2xl active:scale-[0.98]"
+          style={{ background: "#FFCC00", color: "#1A1A1A", height: 56, borderRadius: 14, fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15, letterSpacing: "0.14em", border: "none", cursor: "pointer", boxShadow: "0 8px 40px rgba(255,204,0,0.45)" }}
         >
           <RichTextContent html={ctaText} inline />
         </button>
@@ -1153,7 +1195,7 @@ function ProfilePanel({
   };
 
   return (
-    <div className="px-8 pb-8 flex flex-col gap-6 max-h-[70vh] overflow-y-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="px-4 sm:px-8 pb-8 flex flex-col gap-6 max-h-[70vh] overflow-y-auto" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[10px] text-gray-400 font-semibold tracking-wider">LOGGED IN AS</p>
@@ -1372,8 +1414,8 @@ function CartDrawer({
 
       {/* Drawer */}
       <div
-        className="fixed top-0 right-0 h-full z-[70] flex flex-col transition-transform duration-300"
-        style={{ width: 420, background: "#FFFFFF", transform: open ? "translateX(0)" : "translateX(100%)", boxShadow: "-8px 0 40px rgba(0,0,0,0.12)" }}
+        className="fixed top-0 right-0 h-full z-[70] flex flex-col transition-transform duration-300 w-full max-w-[420px]"
+        style={{ background: "#FFFFFF", transform: open ? "translateX(0)" : "translateX(100%)", boxShadow: "-8px 0 40px rgba(0,0,0,0.12)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
@@ -1956,7 +1998,7 @@ export function Footer({ cms }: { cms?: any }) {
   const cssGlobal = isCssGlobal("footer", cms);
 
   return (
-    <footer className="py-8 px-8 text-center border-t" style={{ borderColor: "rgba(212,175,55,0.15)", background: "#FFFFFF" }}>
+    <footer className="py-8 px-4 sm:px-8 text-center border-t" style={{ borderColor: "rgba(212,175,55,0.15)", background: "#FFFFFF" }}>
       {customHtml ? (
         <div className="max-w-4xl mx-auto mb-4 text-left">
           <CmsHtmlCssBlock html={String(customHtml)} css={String(cms?.customCss || "")} scopeId="footer-inline" raw={cssGlobal} omitCss={cssGlobal} />

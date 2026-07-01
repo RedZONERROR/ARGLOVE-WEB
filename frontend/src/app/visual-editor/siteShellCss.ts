@@ -13,7 +13,12 @@ export const SITE_SHELL_CSS = `
   width: 100%;
 }
 #arglove-site-shell > main.cms-main-offset {
-  padding-top: 110px;
+  padding-top: 96px;
+}
+@media (min-width: 640px) {
+  #arglove-site-shell > main.cms-main-offset {
+    padding-top: 110px;
+  }
 }
 #arglove-site-shell .arglove-header-cms,
 #arglove-site-shell > header,

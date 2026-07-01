@@ -55,7 +55,7 @@ const inputCls =
 function renderProductInsertBlock(block: HomeBlock) {
   if (block.type === "html") {
     return (
-      <section key={block.id} className="px-8 py-10" style={{ background: "#FFF9E6" }}>
+      <section key={block.id} className="px-4 sm:px-8 py-10" style={{ background: "#FFF9E6" }}>
         <div className="max-w-5xl mx-auto">
           <CmsRawHtmlBlock block={block} />
         </div>
@@ -64,7 +64,7 @@ function renderProductInsertBlock(block: HomeBlock) {
   }
   if (block.type === "image" && block.props?.src) {
     return (
-      <section key={block.id} className="px-8 py-8" style={{ background: "#FFF9E6" }}>
+      <section key={block.id} className="px-4 sm:px-8 py-8" style={{ background: "#FFF9E6" }}>
         <div className="max-w-5xl mx-auto">
           <img
             src={String(block.props.src)}
@@ -197,7 +197,7 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
 
   if (loading) {
     return (
-      <section className="py-32 px-8 text-center" style={{ ...sans, color: "#666" }}>
+      <section className="py-24 sm:py-32 px-4 sm:px-8 text-center" style={{ ...sans, color: "#666" }}>
         Loading product…
       </section>
     );
@@ -205,7 +205,7 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
 
   if (!detail) {
     return (
-      <section className="py-32 px-8 flex flex-col items-center gap-4" style={sans}>
+      <section className="py-24 sm:py-32 px-4 sm:px-8 flex flex-col items-center gap-4" style={sans}>
         <p style={{ color: "#666" }}>Product not found</p>
         <a
           href="/"
@@ -270,7 +270,7 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
       blocks={cmsBlocks}
       productMain={
         <section style={{ background: "#FFF9E6" }}>
-          <div className="max-w-5xl mx-auto px-8 py-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-16">
             <a
               href="/"
               onClick={(e) => spaNavigateClick(e, "/")}
@@ -280,7 +280,7 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
               <ArrowLeft size={14} /> Back to store
             </a>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
               <ImageZoomGallery items={gallery} discountPct={discountPct} />
 
               <div>
@@ -357,7 +357,7 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
               style={{ background: "#FFFFFF", border: GOLD_BORDER }}
             >
               <div className="flex items-baseline gap-3 flex-wrap">
-                <span style={{ ...serif, fontWeight: 700, fontSize: 36, color: "#1A1A1A", lineHeight: 1 }}>
+                <span style={{ ...serif, fontWeight: 700, fontSize: "clamp(28px, 8vw, 36px)", color: "#1A1A1A", lineHeight: 1 }}>
                   ₹{displayPrice.toLocaleString("en-IN")}
                 </span>
                 {savings > 0 ? (
@@ -404,14 +404,14 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
 
         <SectionCustomElements cms={mainOverrides} scopeId="product-main" />
 
-        <div className="mt-16 rounded-3xl overflow-hidden" style={{ background: "#FFFFFF", border: GOLD_BORDER }}>
-          <div className="flex gap-6 px-8 border-b" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
+        <div className="mt-12 sm:mt-16 rounded-3xl overflow-hidden" style={{ background: "#FFFFFF", border: GOLD_BORDER }}>
+          <div className="flex gap-4 sm:gap-6 px-4 sm:px-8 border-b overflow-x-auto" style={{ borderColor: "rgba(212,175,55,0.15)" }}>
             {(["description", "reviews", "benefits"] as Tab[]).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className="py-4 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors"
+                className="py-4 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors whitespace-nowrap shrink-0"
                 style={{
                   ...sans,
                   color: tab === t ? "#1A1A1A" : "#999",
@@ -425,7 +425,7 @@ export default function ProductDetailPage({ productId, onAddToCart, onOpenAccoun
             ))}
           </div>
 
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {tab === "description" && (
               <RichTextContent
                 html={displayLongDescription}

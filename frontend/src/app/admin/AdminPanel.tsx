@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   BarChart3,
   LayoutDashboard,
+  Menu,
   MessageSquare,
   Package,
   ShoppingCart,
@@ -86,6 +87,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const refreshPendingReviews = useCallback(async () => {
     try {
@@ -117,6 +119,10 @@ export default function AdminPanel() {
       }
     })();
   }, [isAuthenticated, authReady, setUser, refreshPendingReviews]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [tab]);
 
   const isAllowed = user?.role === "admin";
 
@@ -157,10 +163,23 @@ export default function AdminPanel() {
   ];
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#0B0B0B", color: "#fff", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen flex flex-col md:flex-row" style={{ background: "#0B0B0B", color: "#fff", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <Toaster position="top-center" />
 
-      <aside className="w-56 shrink-0 flex flex-col border-r border-white/10" style={{ background: "#111" }}>
+      {mobileNavOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden
+        />
+      ) : null}
+
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-50 w-56 shrink-0 flex flex-col border-r border-white/10 transition-transform duration-200 md:translate-x-0 ${
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        style={{ background: "#111" }}
+      >
         <div className="p-4 border-b border-white/10">
           <div className="font-bold text-sm tracking-wide">ARGLOVE Admin</div>
           <div className="text-[10px] text-white/40 mt-1 truncate">{user.email}</div>
@@ -199,13 +218,23 @@ export default function AdminPanel() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-10 px-6 py-4 border-b border-white/10 flex items-center justify-between" style={{ background: "rgba(11,11,11,0.95)", backdropFilter: "blur(8px)" }}>
-          <h1 className="text-lg font-bold capitalize">
-            {tab === "coupons" ? "Coupon codes" : tab === "reviews" ? "Review moderation" : tab}
-          </h1>
+      <main className="flex-1 overflow-auto min-w-0">
+        <header className="sticky top-0 z-10 px-4 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3" style={{ background: "rgba(11,11,11,0.95)", backdropFilter: "blur(8px)" }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-lg border border-white/10 bg-white/5 cursor-pointer shrink-0"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
+            <h1 className="text-lg font-bold capitalize truncate">
+              {tab === "coupons" ? "Coupon codes" : tab === "reviews" ? "Review moderation" : tab}
+            </h1>
+          </div>
         </header>
-        <div className="p-6 max-w-6xl">
+        <div className="p-4 sm:p-6 max-w-6xl">
           {tab === "dashboard" && <DashboardView />}
           {tab === "products" && <ProductsView />}
           {tab === "orders" && <OrdersView />}
@@ -431,8 +460,8 @@ function ProductsView() {
       )}
 
       {loading ? <p className="text-white/50">Loading…</p> : (
-        <div className="rounded-2xl border border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-2xl border border-white/10 overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-white/40 text-xs uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.04)" }}>
                 <th className="p-3">Product</th>
@@ -603,8 +632,8 @@ function OrdersView() {
       </div>
 
       {loading ? <p className="text-white/50">Loading…</p> : (
-        <div className="rounded-2xl border border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-2xl border border-white/10 overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-white/40 text-xs uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.04)" }}>
                 <th className="p-3">Order</th>
@@ -879,8 +908,8 @@ function UsersView({ currentUserId }: { currentUserId: number }) {
     <div className="space-y-4">
       <div className="flex justify-end"><button type="button" onClick={load} className={btnGhost}><RefreshCw size={14} /></button></div>
       {loading ? <p className="text-white/50">Loading…</p> : (
-        <div className="rounded-2xl border border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-2xl border border-white/10 overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-white/40 text-xs uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.04)" }}>
                 <th className="p-3">Email</th>
